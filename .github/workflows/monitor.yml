@@ -1,0 +1,38 @@
+name: Pinnacle 역행봇
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # 5분마다 실행
+  workflow_dispatch:          # 수동 실행 버튼
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4        # 5분 전에 반드시 종료
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install requests
+
+      # DB 파일 복원 (이전 실행에서 저장한 것)
+      - name: DB 복원
+        uses: actions/cache@v4
+        with:
+          path: pinnacle_odds.db
+          key: pinnacle-db-${{ github.run_number }}
+          restore-keys: |
+            pinnacle-db-
+
+      - name: 모니터 실행
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python monitor.py

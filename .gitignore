@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+pinnacle_odds.db
+raw_data.json
+.claude/
+ai-casino/
+betwatch_test.html
