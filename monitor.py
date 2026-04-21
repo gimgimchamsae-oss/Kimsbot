@@ -13,30 +13,54 @@ from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
 
+LEAGUE_FLAG = {"MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵"}
 
-def notify(alert: dict):
-    """알림 출력 (텔레그램 연동 시 여기서 발송)"""
-    now = datetime.now(KST).strftime("%H:%M:%S")
-    tag = {"누적": "📈", "즉시": "⚡", "라인변경": "🔄"}.get(alert["type"], "🔔")
-    print(f"\n{'='*55}")
-    print(f"{tag} [{alert['type']}] {now}")
-    print(alert["msg"])
-    print(f"{'='*55}")
 
-    # 텔레그램 연동 (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID 환경변수 설정 시 활성화)
+def _send_telegram(text: str):
     token   = os.environ.get("TELEGRAM_TOKEN")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if token and chat_id:
-        try:
-            import requests
-            text = f"{tag} [{alert['type']}]\n{alert['msg']}"
-            requests.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": chat_id, "text": text},
-                timeout=5,
-            )
-        except Exception as e:
-            print(f"[텔레그램 오류] {e}")
+    if not token or not chat_id:
+        return
+    try:
+        import requests as req
+        req.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": text},
+            timeout=5,
+        )
+    except Exception as e:
+        print(f"[텔레그램 오류] {e}")
+
+
+def notify(alert: dict):
+    tag = {"누적": "📈", "즉시": "⚡️", "라인변경": "🔄"}.get(alert["type"], "🔔")
+    print(f"\n{'='*55}\n{alert['msg']}\n{'='*55}")
+    _send_telegram(alert["msg"])
+
+
+def notify_opening(game: dict):
+    flag  = LEAGUE_FLAG.get(game["league"], "⚾️")
+    starts = game["starts_at"].replace(" KST", "")
+
+    ml_away = f"{game['ml_away']:.2f}" if game["ml_away"] else "?"
+    ml_home = f"{game['ml_home']:.2f}" if game["ml_home"] else "?"
+
+    sp = f"핸디({game['sp_pts']:+.1f}) 원정 {game['sp_away']:.2f} / 홈 {game['sp_home']:.2f}" \
+        if game["sp_pts"] is not None else "핸디 ?"
+
+    ou = f"U/O {game['ou_pts']} 오버 {game['ou_over']:.2f} / 언더 {game['ou_under']:.2f}" \
+        if game["ou_pts"] is not None else "U/O ?"
+
+    msg = (
+        f"📌 [오프닝 라인 등록]\n\n"
+        f"{flag} {game['league']}: {game['away']} vs {game['home']}\n"
+        f"⏰ 경기: {starts} KST\n\n"
+        f"승패  원정 {ml_away} / 홈 {ml_home}\n"
+        f"{sp}\n"
+        f"{ou}"
+    )
+    print(msg)
+    _send_telegram(msg)
 
 
 def run():
@@ -53,10 +77,10 @@ def run():
         opening = get_opening(mid)
         prev    = get_prev_snapshot(mid)
 
-        # 신규 경기 → 오프닝 저장
+        # 신규 경기 → 오프닝 저장 + 알림
         if opening is None:
             save_opening(game)
-            print(f"  [신규] {game['league']} {game['away']} @ {game['home']} ({game['starts_at']})")
+            notify_opening(game)
             opening = game
 
         # 알림 체크
