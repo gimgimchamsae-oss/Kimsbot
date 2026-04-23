@@ -20,14 +20,6 @@ const LEAGUES_BY_SPORT = {
   soccer: ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
 }
 
-const ALERT_LABELS = {
-  instant_ml: '⚡ML',
-  instant_sp: '⚡핸디',
-  instant_ou: '⚡O/U',
-  line_sp:    '🔄핸디',
-  line_ou:    '🔄O/U',
-}
-
 function OddsTag({ label, value, openValue, highlight }) {
   const diff = (value != null && openValue != null)
     ? parseFloat((value - openValue).toFixed(3))
@@ -47,16 +39,46 @@ function OddsTag({ label, value, openValue, highlight }) {
   )
 }
 
-function SharpBadge({ alertTypes }) {
-  if (!alertTypes || alertTypes.length === 0) return null
-  const unique = [...new Set(alertTypes)]
+function SharpBadge({ alerts, game }) {
+  if (!alerts || alerts.length === 0) return null
+  const op = game.opening || {}
+  const fmtPts = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
+
   return (
     <div className="flex gap-1 flex-wrap mb-2">
-      {unique.map(t => (
-        <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-yellow-500 text-gray-900 font-bold">
-          {ALERT_LABELS[t] || t}
-        </span>
-      ))}
+      {alerts.map(({ type, threshold }) => {
+        let label, detail
+        switch (type) {
+          case 'instant_ml':
+            label = '⚡ML'
+            detail = threshold ? `${parseFloat(threshold).toFixed(2)}` : ''
+            break
+          case 'instant_sp':
+            label = '⚡핸디'
+            detail = threshold ? `${parseFloat(threshold).toFixed(2)}` : ''
+            break
+          case 'instant_ou':
+            label = '⚡O/U'
+            detail = threshold ? `${parseFloat(threshold).toFixed(2)}` : ''
+            break
+          case 'line_sp':
+            label = '🔄핸디'
+            detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`
+            break
+          case 'line_ou':
+            label = '🔄O/U'
+            detail = op.ou_pts != null ? `${op.ou_pts}→${game.ou_pts}` : ''
+            break
+          default:
+            label = type
+            detail = threshold || ''
+        }
+        return (
+          <span key={type} className="text-xs px-2 py-0.5 rounded bg-yellow-500 text-gray-900 font-bold">
+            {label}{detail ? ` ${detail}` : ''}
+          </span>
+        )
+      })}
     </div>
   )
 }
@@ -75,7 +97,7 @@ function GameCard({ game }) {
       </div>
 
       {/* 샤프 시그널 */}
-      <SharpBadge alertTypes={game.recentAlerts} />
+      <SharpBadge alerts={game.recentAlerts} game={game} />
 
       {/* 팀명 */}
       <div className="mb-3">
@@ -136,7 +158,7 @@ export default function App() {
     const [linesRes, openingsRes, alertsRes] = await Promise.all([
       supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
       supabase.from('opening_lines').select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under'),
-      supabase.from('alerts').select('matchup_id,alert_type').order('id', { ascending: false }).limit(500),
+      supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
     ])
 
     const openingsMap = Object.fromEntries(
@@ -146,17 +168,26 @@ export default function App() {
     // 현재 표시 중인 경기 ID 집합 (오래된 알림 제외용)
     const currentIds = new Set((linesRes.data || []).map(g => g.matchup_id))
 
+    // 게임당 alert_type별로 최신 1개씩 (instant는 최대 threshold 유지)
     const alertsMap = {}
     for (const a of (alertsRes.data || [])) {
       if (!currentIds.has(a.matchup_id)) continue
-      if (!alertsMap[a.matchup_id]) alertsMap[a.matchup_id] = new Set()
-      alertsMap[a.matchup_id].add(a.alert_type)
+      if (!alertsMap[a.matchup_id]) alertsMap[a.matchup_id] = {}
+      const cur = alertsMap[a.matchup_id][a.alert_type]
+      if (!cur) {
+        alertsMap[a.matchup_id][a.alert_type] = { type: a.alert_type, threshold: a.threshold }
+      } else if (a.alert_type.startsWith('instant_')) {
+        // 스팀무브는 최대 변동폭으로 업데이트
+        if (parseFloat(a.threshold) > parseFloat(cur.threshold)) {
+          cur.threshold = a.threshold
+        }
+      }
     }
 
     const merged = (linesRes.data || []).map(g => ({
       ...g,
       opening:      openingsMap[g.matchup_id] || null,
-      recentAlerts: alertsMap[g.matchup_id] ? [...alertsMap[g.matchup_id]] : [],
+      recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
     }))
 
     setGames(merged)
