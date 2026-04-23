@@ -74,25 +74,52 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
     if ou_line_changed:
         suppressed.update(["ou_over", "ou_under"])
 
-    # ── 스팀무브 (즉시 0.10+ 변동) ──────────────────────────
+    # ── 스팀무브 (즉시 0.10+ 변동, 마켓별 1개로 묶음) ──────
     if prev:
-        steam_fields = ["ml_home", "ml_away", "ml_draw", "sp_home", "sp_away", "ou_over", "ou_under"]
-        for field in steam_fields:
-            if field in suppressed:
+        # 마켓 그룹 정의: (그룹명, 알림타입키, [필드목록])
+        steam_groups = [
+            ("ML",    "instant_ml", ["ml_home", "ml_away", "ml_draw"]),
+            ("핸디캡", "instant_sp", ["sp_home", "sp_away"]),
+            ("오버언더","instant_ou", ["ou_over", "ou_under"]),
+        ]
+        for group_name, atype, fields in steam_groups:
+            # 억제된 필드 그룹이면 스킵
+            if all(f in suppressed for f in fields if game.get(f) is not None):
                 continue
-            diff = _diff(game.get(field), prev.get(field))
-            if diff is None or diff < INSTANT_THRESH:
-                continue
-            signed = _signed(game[field], prev[field])
-            cat, side = FIELD_KO[field]
-            desc  = f"급하락 ❄️" if signed < 0 else f"급상승 🔥"
 
-            save_alert(mid, f"instant_{field}", f"{diff:.2f}")
+            # 그룹 내 0.10+ 변동 필드 수집
+            moved = []
+            for field in fields:
+                if field in suppressed:
+                    continue
+                diff = _diff(game.get(field), prev.get(field))
+                if diff is None or diff < INSTANT_THRESH:
+                    continue
+                moved.append((field, diff))
+
+            if not moved:
+                continue
+
+            # 대표 변동폭으로 중복 억제
+            max_diff = max(d for _, d in moved)
+            if alert_sent(mid, atype, f"{max_diff:.2f}"):
+                continue
+            save_alert(mid, atype, f"{max_diff:.2f}")
+
+            # 변동 내용 라인 생성
+            lines = []
+            for field, diff in moved:
+                signed = _signed(game[field], prev[field])
+                _, side = FIELD_KO[field]
+                arrow = "📉" if signed < 0 else "📈"
+                lines.append(f"  {arrow} {side}: {prev[field]:.2f} → {game[field]:.2f}  ({signed:+.2f})")
+
+            desc = "급하락 ❄️" if _signed(game[moved[0][0]], prev[moved[0][0]]) < 0 else "급상승 🔥"
             alerts.append({"type": "즉시", "msg": (
                 f"⚡️ [스팀무브 감지]\n\n"
                 f"{header}\n\n"
-                f"📊 {cat} {side} {desc}\n"
-                f"  직전: {prev[field]:.2f}  →  현재: {game[field]:.2f}  ({signed:+.2f})"
+                f"📊 {group_name} {desc}\n"
+                + "\n".join(lines)
             )})
 
     # ── 핸디캡 기준선 변경 (배당 포함) ──────────────────────
