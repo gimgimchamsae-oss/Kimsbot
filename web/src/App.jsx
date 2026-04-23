@@ -20,14 +20,17 @@ const LEAGUES_BY_SPORT = {
   soccer: ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
 }
 
+// highlight: null | 'blue' | 'red'
 function OddsTag({ label, value, openValue, highlight }) {
   const diff = (value != null && openValue != null)
     ? parseFloat((value - openValue).toFixed(3))
     : null
   const hasDiff = diff !== null && Math.abs(diff) >= 0.005
 
+  const bg = highlight === 'red' ? 'bg-red-600' : highlight === 'blue' ? 'bg-blue-600' : 'bg-gray-700'
+
   return (
-    <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg ${highlight ? 'bg-blue-600' : 'bg-gray-700'}`}>
+    <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg ${bg}`}>
       <span className="text-xs text-gray-400">{label}</span>
       <span className={`text-sm font-bold ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
       {hasDiff && (
@@ -84,9 +87,24 @@ function SharpBadge({ alerts, game }) {
 }
 
 function GameCard({ game }) {
-  const flag    = LEAGUE_FLAGS[game.league] || '🏟'
+  const flag     = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
-  const op      = game.opening || {}
+  const op       = game.opening || {}
+
+  // 오프닝 대비 낙폭이 큰 쪽 → 파란(0.10미만) / 빨강(0.10이상)
+  function dropHighlight(curA, openA, curB, openB) {
+    if (curA == null || openA == null || curB == null || openB == null) return [null, null]
+    const dA = curA - openA  // 음수 = 하락
+    const dB = curB - openB
+    if (dA === dB) return [null, null]
+    const favA = dA < dB  // A가 더 많이 떨어짐
+    const drop = favA ? Math.abs(dA) : Math.abs(dB)
+    const color = drop >= 0.10 ? 'red' : 'blue'
+    return favA ? [color, null] : [null, color]
+  }
+
+  const [mlHomeHL, mlAwayHL] = dropHighlight(game.ml_home, op.ml_home, game.ml_away, op.ml_away)
+  const [spHomeHL, spAwayHL] = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
@@ -107,9 +125,9 @@ function GameCard({ game }) {
 
       {/* 승패 배당 */}
       <div className="flex gap-2 mb-2 flex-wrap">
-        <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight />
+        <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight={mlHomeHL} />
         {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw} openValue={op.ml_draw} />}
-        <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} />
+        <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} highlight={mlAwayHL} />
       </div>
 
       {/* 핸디캡 */}
@@ -119,11 +137,13 @@ function GameCard({ game }) {
             label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`}
             value={game.sp_home}
             openValue={op.sp_home}
+            highlight={spHomeHL}
           />
           <OddsTag
             label={`원정 ${(-game.sp_pts) >= 0 ? '+' : ''}${-game.sp_pts}`}
             value={game.sp_away}
             openValue={op.sp_away}
+            highlight={spAwayHL}
           />
         </div>
       )}
