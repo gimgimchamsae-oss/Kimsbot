@@ -1,0 +1,18 @@
+{
+  "name": "Pinnacle RLM",
+  "short_name": "Pinnacle RLM",
+  "description": "Pinnacle 실시간 배당 모니터",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

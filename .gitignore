@@ -5,3 +5,8 @@ raw_data.json
 .claude/
 ai-casino/
 betwatch_test.html
+
+# Web env (Supabase keys - never commit!)
+web/.env
+web/.env.local
+web/node_modules/
