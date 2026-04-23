@@ -61,10 +61,25 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
     header = _header(game)
     alerts = []
 
+    # 라인 변경 여부 미리 확인 (스팀무브 억제용)
+    sp_line_changed = (game.get("sp_pts") is not None and opening.get("sp_pts") is not None
+                       and game["sp_pts"] != opening["sp_pts"])
+    ou_line_changed = (game.get("ou_pts") is not None and opening.get("ou_pts") is not None
+                       and game["ou_pts"] != opening["ou_pts"])
+
+    # 라인 변경 시 해당 마켓 스팀무브 억제 (라인변경 알림에 배당 포함되어 있으므로)
+    suppressed = set()
+    if sp_line_changed:
+        suppressed.update(["sp_home", "sp_away"])
+    if ou_line_changed:
+        suppressed.update(["ou_over", "ou_under"])
+
     # ── 스팀무브 (즉시 0.10+ 변동) ──────────────────────────
     if prev:
         steam_fields = ["ml_home", "ml_away", "ml_draw", "sp_home", "sp_away", "ou_over", "ou_under"]
         for field in steam_fields:
+            if field in suppressed:
+                continue
             diff = _diff(game.get(field), prev.get(field))
             if diff is None or diff < INSTANT_THRESH:
                 continue
