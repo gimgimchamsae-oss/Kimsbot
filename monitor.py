@@ -106,6 +106,12 @@ def run():
     now = datetime.now(KST).strftime("%H:%M:%S KST")
     print(f"[{now}] 배당 수집 시작...")
 
+    # 디버그: Supabase 연결 확인
+    import os
+    sb_url = os.environ.get("SUPABASE_URL", "")
+    sb_key = os.environ.get("SUPABASE_KEY", "")
+    print(f"[DEBUG] USE_SUPABASE={bool(sb_url and sb_key)} / URL={sb_url[:30] if sb_url else 'None'}")
+
     games = fetch_games()
     print(f"경기 {len(games)}개 처리 중...")
 
@@ -120,7 +126,11 @@ def run():
 
         # 신규 경기 → 24시간 이내면 오프닝 저장
         if opening is None:
-            save_opening(game)
+            try:
+                save_opening(game)
+                print(f"[DEBUG] 저장 성공: {game['home']} vs {game['away']}")
+            except Exception as e:
+                print(f"[DEBUG] 저장 실패: {game['home']} vs {game['away']} → {e}")
             if _within_24h(game["starts_at"]):
                 new_openings.append(game)
             opening = game
