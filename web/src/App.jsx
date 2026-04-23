@@ -89,7 +89,7 @@ export default function App() {
   async function fetchGames() {
     setLoading(true)
     const { data } = await supabase
-      .from('opening_lines')
+      .from('latest_lines')
       .select('*')
       .order('starts_at', { ascending: true })
     setGames(data || [])
