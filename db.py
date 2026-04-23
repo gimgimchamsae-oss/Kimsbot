@@ -26,12 +26,14 @@ def init_db():
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             matchup_id  INTEGER NOT NULL,
             league      TEXT NOT NULL,
+            sport       TEXT NOT NULL DEFAULT 'baseball',
             home        TEXT NOT NULL,
             away        TEXT NOT NULL,
             starts_at   TEXT NOT NULL,
             ts          TEXT NOT NULL DEFAULT (datetime('now')),
             ml_home     REAL,
             ml_away     REAL,
+            ml_draw     REAL,
             sp_pts      REAL,
             sp_home     REAL,
             sp_away     REAL,
@@ -43,12 +45,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS opening_lines (
             matchup_id  INTEGER PRIMARY KEY,
             league      TEXT NOT NULL,
+            sport       TEXT NOT NULL DEFAULT 'baseball',
             home        TEXT NOT NULL,
             away        TEXT NOT NULL,
             starts_at   TEXT NOT NULL,
             ts          TEXT NOT NULL,
             ml_home     REAL,
             ml_away     REAL,
+            ml_draw     REAL,
             sp_pts      REAL,
             sp_home     REAL,
             sp_away     REAL,
@@ -64,20 +68,29 @@ def init_db():
             threshold   TEXT,
             ts          TEXT NOT NULL DEFAULT (datetime('now'))
         );
-        """)
+
+        """
+        )
+        # 기존 테이블 마이그레이션 (컬럼 없을 때만 추가)
+        for col, definition in [("ml_draw", "REAL"), ("sport", "TEXT NOT NULL DEFAULT 'baseball'")]:
+            for table in ["snapshots", "opening_lines"]:
+                try:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {definition}")
+                except Exception:
+                    pass  # 이미 존재하면 무시
 
 
 def save_snapshot(game: dict):
     with get_conn() as conn:
         conn.execute("""
             INSERT INTO snapshots
-                (matchup_id, league, home, away, starts_at,
-                 ml_home, ml_away,
+                (matchup_id, league, sport, home, away, starts_at,
+                 ml_home, ml_away, ml_draw,
                  sp_pts, sp_home, sp_away,
                  ou_pts, ou_over, ou_under)
             VALUES
-                (:matchup_id, :league, :home, :away, :starts_at,
-                 :ml_home, :ml_away,
+                (:matchup_id, :league, :sport, :home, :away, :starts_at,
+                 :ml_home, :ml_away, :ml_draw,
                  :sp_pts, :sp_home, :sp_away,
                  :ou_pts, :ou_over, :ou_under)
         """, game)
@@ -95,13 +108,13 @@ def save_opening(game: dict):
     with get_conn() as conn:
         conn.execute("""
             INSERT OR IGNORE INTO opening_lines
-                (matchup_id, league, home, away, starts_at, ts,
-                 ml_home, ml_away,
+                (matchup_id, league, sport, home, away, starts_at, ts,
+                 ml_home, ml_away, ml_draw,
                  sp_pts, sp_home, sp_away,
                  ou_pts, ou_over, ou_under)
             VALUES
-                (:matchup_id, :league, :home, :away, :starts_at, datetime('now'),
-                 :ml_home, :ml_away,
+                (:matchup_id, :league, :sport, :home, :away, :starts_at, datetime('now'),
+                 :ml_home, :ml_away, :ml_draw,
                  :sp_pts, :sp_home, :sp_away,
                  :ou_pts, :ou_over, :ou_under)
         """, game)
@@ -121,7 +134,8 @@ def alert_sent(matchup_id: int, alert_type: str, threshold: str = None) -> bool:
     with get_conn() as conn:
         row = conn.execute("""
             SELECT 1 FROM alerts
-            WHERE matchup_id = ? AND alert_type = ? AND (threshold = ? OR (threshold IS NULL AND ? IS NULL))
+            WHERE matchup_id = ? AND alert_type = ?
+            AND (threshold = ? OR (threshold IS NULL AND ? IS NULL))
         """, (matchup_id, alert_type, threshold, threshold)).fetchone()
         return row is not None
 

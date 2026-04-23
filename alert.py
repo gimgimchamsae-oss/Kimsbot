@@ -13,6 +13,7 @@ KST = timezone(timedelta(hours=9))
 FIELD_KO = {
     "ml_home":  ("ML", "홈"),
     "ml_away":  ("ML", "원정"),
+    "ml_draw":  ("ML", "무승부"),
     "sp_home":  ("핸디캡", "홈"),
     "sp_away":  ("핸디캡", "원정"),
     "ou_over":  ("오버언더", "오버"),
@@ -62,7 +63,7 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
 
     # ── 스팀무브 (즉시 0.10+ 변동) ──────────────────────────
     if prev:
-        steam_fields = ["ml_home", "ml_away", "sp_home", "sp_away", "ou_over", "ou_under"]
+        steam_fields = ["ml_home", "ml_away", "ml_draw", "sp_home", "sp_away", "ou_over", "ou_under"]
         for field in steam_fields:
             diff = _diff(game.get(field), prev.get(field))
             if diff is None or diff < INSTANT_THRESH:

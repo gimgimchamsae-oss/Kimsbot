@@ -1,6 +1,7 @@
 """
-Pinnacle 야구 배당 수집 (requests 기반 - Playwright 불필요)
-MLB / KBO / NPB
+Pinnacle 배당 수집 (requests 기반)
+야구: MLB / KBO / NPB
+축구: EPL / Bundesliga / Serie A / Ligue 1 / La Liga
 """
 
 import requests
@@ -18,10 +19,18 @@ HEADERS = {
     "X-API-Key": "CmX2KcMrXuFmNg6YFbmTxE0y9CfIa4uXrRnhpJJOdMQualIjHNMFTBLKiGLZgBYSdflCqxFMfHeM0bBlSqoHaQXW5eTUq0I0",
 }
 
+# sport: baseball=3, soccer=29
 LEAGUES = {
-    "246":    "MLB",
-    "6227":   "KBO",
-    "187703": "NPB",
+    # 야구
+    "246":    ("MLB",       "baseball"),
+    "6227":   ("KBO",       "baseball"),
+    "187703": ("NPB",       "baseball"),
+    # 축구
+    "1980":   ("EPL",       "soccer"),
+    "1842":   ("Bundesliga","soccer"),
+    "2436":   ("Serie A",   "soccer"),
+    "2036":   ("Ligue 1",   "soccer"),
+    "2196":   ("La Liga",   "soccer"),
 }
 
 
@@ -39,7 +48,7 @@ def to_decimal(american: int) -> float:
 
 def fetch_games() -> list[dict]:
     games = []
-    for lid, lname in LEAGUES.items():
+    for lid, (lname, sport) in LEAGUES.items():
         try:
             matchups = _get(f"/leagues/{lid}/matchups")
             markets  = _get(f"/leagues/{lid}/markets/straight")
@@ -47,7 +56,6 @@ def fetch_games() -> list[dict]:
             print(f"[{lname}] API 오류: {e}")
             continue
 
-        # period=0, 비얼터네이트, 주요 타입 인덱싱
         mkt_idx: dict[int, dict] = {}
         for m in markets:
             if (m.get("period") == 0 and not m.get("isAlternate")
@@ -91,11 +99,13 @@ def fetch_games() -> list[dict]:
             games.append({
                 "matchup_id": mu["id"],
                 "league":     lname,
+                "sport":      sport,
                 "home":       home,
                 "away":       away,
                 "starts_at":  starts_at,
                 "ml_home":    price(ml,  "home"),
                 "ml_away":    price(ml,  "away"),
+                "ml_draw":    price(ml,  "draw"),   # 축구 무승부
                 "sp_pts":     pts(sp,    "home"),
                 "sp_home":    price(sp,  "home"),
                 "sp_away":    price(sp,  "away"),
@@ -109,11 +119,11 @@ def fetch_games() -> list[dict]:
 
 if __name__ == "__main__":
     games = fetch_games()
-    from datetime import datetime
     print(f"수집 완료: {len(games)}경기 ({datetime.now(KST).strftime('%H:%M:%S KST')})\n")
     for g in sorted(games, key=lambda x: x["starts_at"]):
+        draw = f" / 무 {g['ml_draw']}" if g.get("ml_draw") else ""
         print(f"[{g['league']}] {g['away']} @ {g['home']} ({g['starts_at']})")
-        print(f"  ML: 원정 {g['ml_away']} / 홈 {g['ml_home']}")
+        print(f"  ML: 원정 {g['ml_away']} / 홈 {g['ml_home']}{draw}")
         if g['sp_pts'] is not None:
             print(f"  핸디: {g['sp_pts']:+.1f}  원정 {g['sp_away']} / 홈 {g['sp_home']}")
         if g['ou_pts'] is not None:

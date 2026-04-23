@@ -13,7 +13,11 @@ from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
 
-LEAGUE_FLAG = {"MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵"}
+LEAGUE_FLAG = {
+    "MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵",
+    "EPL": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Bundesliga": "🇩🇪", "Serie A": "🇮🇹",
+    "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
+}
 
 
 def _send_telegram(text: str):
@@ -42,20 +46,21 @@ def notify_opening(game: dict):
     flag  = LEAGUE_FLAG.get(game["league"], "⚾️")
     starts = game["starts_at"].replace(" KST", "")
 
-    ml_away = f"{game['ml_away']:.2f}" if game["ml_away"] else "?"
-    ml_home = f"{game['ml_home']:.2f}" if game["ml_home"] else "?"
+    ml_away = f"{game['ml_away']:.2f}" if game.get("ml_away") else "?"
+    ml_home = f"{game['ml_home']:.2f}" if game.get("ml_home") else "?"
+    ml_draw = f" / 무 {game['ml_draw']:.2f}" if game.get("ml_draw") else ""
 
     sp = f"핸디({game['sp_pts']:+.1f}) 원정 {game['sp_away']:.2f} / 홈 {game['sp_home']:.2f}" \
-        if game["sp_pts"] is not None else "핸디 ?"
+        if game.get("sp_pts") is not None else "핸디 ?"
 
     ou = f"U/O {game['ou_pts']} 오버 {game['ou_over']:.2f} / 언더 {game['ou_under']:.2f}" \
-        if game["ou_pts"] is not None else "U/O ?"
+        if game.get("ou_pts") is not None else "U/O ?"
 
     msg = (
         f"📌 [오프닝 라인 등록]\n\n"
         f"{flag} {game['league']}: {game['away']} vs {game['home']}\n"
         f"⏰ 경기: {starts} KST\n\n"
-        f"승패  원정 {ml_away} / 홈 {ml_home}\n"
+        f"승패  원정 {ml_away} / 홈 {ml_home}{ml_draw}\n"
         f"{sp}\n"
         f"{ou}"
     )
