@@ -51,7 +51,7 @@ def _header(game: dict) -> str:
     starts = game["starts_at"].replace(" KST", "")
     until  = _hours_until(game["starts_at"])
     return (
-        f"{flag} {game['league']}: {game['away']} vs {game['home']}\n"
+        f"{flag} {game['league']}: {game['home']} vs {game['away']}\n"
         f"⏰ 경기: {starts} KST  ({until})"
     )
 
