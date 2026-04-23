@@ -20,6 +20,11 @@ jobs:
           path: pinnacle_odds.db
           key: pinnacle-db-${{ github.run_number }}
           restore-keys: pinnacle-db-
+      - name: Check env
+        run: python -c "import os; print('SUPABASE_URL set:', bool(os.environ.get('SUPABASE_URL'))); print('SUPABASE_KEY set:', bool(os.environ.get('SUPABASE_KEY')))"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       - run: python monitor.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
