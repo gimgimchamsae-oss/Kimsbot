@@ -20,26 +20,62 @@ const LEAGUES_BY_SPORT = {
   soccer: ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
 }
 
-function OddsTag({ label, value, highlight }) {
+const ALERT_LABELS = {
+  instant_ml: '⚡ML',
+  instant_sp: '⚡핸디',
+  instant_ou: '⚡O/U',
+  line_sp:    '🔄핸디',
+  line_ou:    '🔄O/U',
+}
+
+function OddsTag({ label, value, openValue, highlight }) {
+  const diff = (value != null && openValue != null)
+    ? parseFloat((value - openValue).toFixed(3))
+    : null
+  const hasDiff = diff !== null && Math.abs(diff) >= 0.005
+
   return (
     <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg ${highlight ? 'bg-blue-600' : 'bg-gray-700'}`}>
       <span className="text-xs text-gray-400">{label}</span>
-      <span className={`text-sm font-bold ${highlight ? 'text-white' : 'text-gray-100'}`}>{value ?? '-'}</span>
+      <span className={`text-sm font-bold ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
+      {hasDiff && (
+        <span className={`text-xs font-semibold ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function SharpBadge({ alertTypes }) {
+  if (!alertTypes || alertTypes.length === 0) return null
+  const unique = [...new Set(alertTypes)]
+  return (
+    <div className="flex gap-1 flex-wrap mb-2">
+      {unique.map(t => (
+        <span key={t} className="text-xs px-1.5 py-0.5 rounded bg-yellow-500 text-gray-900 font-bold">
+          {ALERT_LABELS[t] || t}
+        </span>
+      ))}
     </div>
   )
 }
 
 function GameCard({ game }) {
-  const flag = LEAGUE_FLAGS[game.league] || '🏟'
+  const flag    = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
+  const op      = game.opening || {}
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
       {/* 헤더 */}
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-2">
         <span className="text-xs text-gray-400">{flag} {game.league}</span>
         <span className="text-xs text-gray-400">⏰ {game.starts_at?.replace(' KST','')}</span>
       </div>
+
+      {/* 샤프 시그널 */}
+      <SharpBadge alertTypes={game.recentAlerts} />
 
       {/* 팀명 */}
       <div className="mb-3">
@@ -49,24 +85,32 @@ function GameCard({ game }) {
 
       {/* 승패 배당 */}
       <div className="flex gap-2 mb-2 flex-wrap">
-        <OddsTag label="홈" value={game.ml_home?.toFixed(2)} highlight />
-        {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw?.toFixed(2)} />}
-        <OddsTag label="원정" value={game.ml_away?.toFixed(2)} />
+        <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight />
+        {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw} openValue={op.ml_draw} />}
+        <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} />
       </div>
 
       {/* 핸디캡 */}
       {game.sp_pts != null && (
         <div className="flex gap-2 mb-2 flex-wrap">
-          <OddsTag label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`} value={game.sp_home?.toFixed(2)} />
-          <OddsTag label={`원정 ${(-game.sp_pts) >= 0 ? '+' : ''}${-game.sp_pts}`} value={game.sp_away?.toFixed(2)} />
+          <OddsTag
+            label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`}
+            value={game.sp_home}
+            openValue={op.sp_home}
+          />
+          <OddsTag
+            label={`원정 ${(-game.sp_pts) >= 0 ? '+' : ''}${-game.sp_pts}`}
+            value={game.sp_away}
+            openValue={op.sp_away}
+          />
         </div>
       )}
 
       {/* 오버언더 */}
       {game.ou_pts != null && (
         <div className="flex gap-2 flex-wrap">
-          <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over?.toFixed(2)} />
-          <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under?.toFixed(2)} />
+          <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} />
+          <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} />
         </div>
       )}
     </div>
@@ -74,30 +118,52 @@ function GameCard({ game }) {
 }
 
 export default function App() {
-  const [games, setGames]       = useState([])
-  const [sport, setSport]       = useState('all')
-  const [league, setLeague]     = useState('all')
-  const [loading, setLoading]   = useState(true)
+  const [games, setGames]           = useState([])
+  const [sport, setSport]           = useState('all')
+  const [league, setLeague]         = useState('all')
+  const [loading, setLoading]       = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
 
   useEffect(() => {
     fetchGames()
-    const interval = setInterval(fetchGames, 5 * 60 * 1000) // 5분 자동 갱신
+    const interval = setInterval(fetchGames, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
   async function fetchGames() {
     setLoading(true)
-    const { data } = await supabase
-      .from('latest_lines')
-      .select('*')
-      .order('starts_at', { ascending: true })
-    setGames(data || [])
+
+    const [linesRes, openingsRes, alertsRes] = await Promise.all([
+      supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
+      supabase.from('opening_lines').select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under'),
+      supabase.from('alerts').select('matchup_id,alert_type').order('id', { ascending: false }).limit(500),
+    ])
+
+    const openingsMap = Object.fromEntries(
+      (openingsRes.data || []).map(o => [o.matchup_id, o])
+    )
+
+    // 현재 표시 중인 경기 ID 집합 (오래된 알림 제외용)
+    const currentIds = new Set((linesRes.data || []).map(g => g.matchup_id))
+
+    const alertsMap = {}
+    for (const a of (alertsRes.data || [])) {
+      if (!currentIds.has(a.matchup_id)) continue
+      if (!alertsMap[a.matchup_id]) alertsMap[a.matchup_id] = new Set()
+      alertsMap[a.matchup_id].add(a.alert_type)
+    }
+
+    const merged = (linesRes.data || []).map(g => ({
+      ...g,
+      opening:      openingsMap[g.matchup_id] || null,
+      recentAlerts: alertsMap[g.matchup_id] ? [...alertsMap[g.matchup_id]] : [],
+    }))
+
+    setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
     setLoading(false)
   }
 
-  // 필터링
   const leagues = sport === 'all'
     ? Object.values(LEAGUES_BY_SPORT).flat()
     : (LEAGUES_BY_SPORT[sport] || [])
@@ -108,7 +174,6 @@ export default function App() {
     return true
   })
 
-  // 리그별 그룹
   const grouped = filtered.reduce((acc, g) => {
     if (!acc[g.league]) acc[g.league] = []
     acc[g.league].push(g)
