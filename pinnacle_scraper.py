@@ -22,15 +22,21 @@ HEADERS = {
 # sport: baseball=3, soccer=29
 LEAGUES = {
     # 야구
-    "246":    ("MLB",       "baseball"),
-    "6227":   ("KBO",       "baseball"),
-    "187703": ("NPB",       "baseball"),
-    # 축구
-    "1980":   ("EPL",       "soccer"),
-    "1842":   ("Bundesliga","soccer"),
-    "2436":   ("Serie A",   "soccer"),
-    "2036":   ("Ligue 1",   "soccer"),
-    "2196":   ("La Liga",   "soccer"),
+    "246":    ("MLB",          "baseball"),
+    "6227":   ("KBO",          "baseball"),
+    "187703": ("NPB",          "baseball"),
+    # 축구 - 국내/지역 리그
+    "1980":   ("EPL",          "soccer"),
+    "1842":   ("Bundesliga",   "soccer"),
+    "2436":   ("Serie A",      "soccer"),
+    "2036":   ("Ligue 1",      "soccer"),
+    "2196":   ("La Liga",      "soccer"),
+    "207551": ("K리그1",        "soccer"),
+    "2663":   ("MLS",          "soccer"),
+    # 축구 - UEFA 대회
+    "2627":   ("UCL",          "soccer"),
+    "2630":   ("Europa",       "soccer"),
+    "214101": ("Conference",   "soccer"),
 }
 
 

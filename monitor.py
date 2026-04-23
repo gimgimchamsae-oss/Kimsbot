@@ -14,9 +14,14 @@ KST = timezone(timedelta(hours=9))
 OPENING_WINDOW_H = 24  # 24시간 이내 경기만 오프닝 등록
 
 LEAGUE_FLAG = {
+    # 야구
     "MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵",
+    # 축구 리그
     "EPL": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Bundesliga": "🇩🇪", "Serie A": "🇮🇹",
     "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
+    "K리그1": "🇰🇷", "MLS": "🇺🇸",
+    # UEFA 대회
+    "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
 }
 
 

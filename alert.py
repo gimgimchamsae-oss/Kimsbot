@@ -20,7 +20,13 @@ FIELD_KO = {
     "ou_under": ("오버언더", "언더"),
 }
 
-LEAGUE_FLAG = {"MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵"}
+LEAGUE_FLAG = {
+    "MLB": "🇺🇸", "KBO": "🇰🇷", "NPB": "🇯🇵",
+    "EPL": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Bundesliga": "🇩🇪", "Serie A": "🇮🇹",
+    "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
+    "K리그1": "🇰🇷", "MLS": "🇺🇸",
+    "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
+}
 
 
 def _diff(a, b):
