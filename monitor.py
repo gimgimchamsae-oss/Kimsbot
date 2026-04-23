@@ -50,8 +50,12 @@ def notify_opening(game: dict):
     ml_home = f"{game['ml_home']:.2f}" if game.get("ml_home") else "?"
     ml_draw = f" / 무 {game['ml_draw']:.2f}" if game.get("ml_draw") else ""
 
-    sp = f"핸디({game['sp_pts']:+.1f}) 원정 {game['sp_away']:.2f} / 홈 {game['sp_home']:.2f}" \
-        if game.get("sp_pts") is not None else "핸디 ?"
+    if game.get("sp_pts") is not None:
+        home_pts = game["sp_pts"]
+        away_pts = -home_pts
+        sp = f"핸디  원정 {away_pts:+.1f} ({game['sp_away']:.2f}) / 홈 {home_pts:+.1f} ({game['sp_home']:.2f})"
+    else:
+        sp = "핸디 ?"
 
     ou = f"U/O {game['ou_pts']} 오버 {game['ou_over']:.2f} / 언더 {game['ou_under']:.2f}" \
         if game.get("ou_pts") is not None else "U/O ?"
