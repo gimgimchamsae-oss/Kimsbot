@@ -54,7 +54,7 @@ function fmtTime(ts) {
   } catch { return '' }
 }
 
-// 마켓·사이드별 샤프 시그널 (①멀티확인 ②시간가중 ④연속하락 포함)
+// 샤프 시그널: 실제 alert 기록이 있는 마켓만 표시 (드리프트 노이즈 제거)
 function sharpSignals(game) {
   const op = game.opening || {}
   const alerts = game.recentAlerts || []
@@ -64,62 +64,53 @@ function sharpSignals(game) {
   const hasLineSp  = alerts.some(a => a.type === 'line_sp')
   const hasLineOu  = alerts.some(a => a.type === 'line_ou')
 
-  // ② 시간 가중: 경기 0-4h 이내이면 +1
+  // ② 시간 가중: 경기 4h 이내이면 +1
   const hours = hoursUntil(game.starts_at)
   const timeBoost = (hours !== null && hours >= 0 && hours <= 4) ? 1 : 0
 
   const signals = []
 
-  function calcScore(drop, hasSteam, hasLine) {
-    let base
-    if ((hasLine && hasSteam) || drop >= 0.20) base = 3
-    else if (hasSteam || hasLine || drop >= 0.10) base = 2
-    else if (drop >= 0.05) base = 1
-    else base = 0
-    return Math.min(3, base + timeBoost)
+  // ── ML: 스팀무브 alert 있을 때만 ──────────────────────────
+  if (hasSteamMl) {
+    const dropHome = (op.ml_home && game.ml_home) ? op.ml_home - game.ml_home : 0
+    const dropAway = (op.ml_away && game.ml_away) ? op.ml_away - game.ml_away : 0
+    const [label, drop] = dropHome >= dropAway ? ['홈 ML', dropHome] : ['원정 ML', dropAway]
+    const steamVal = parseFloat(alerts.find(a => a.type === 'instant_ml')?.threshold || 0)
+    const base = steamVal >= 0.20 ? 3 : 2
+    signals.push({ label, drop, score: Math.min(3, base + timeBoost) })
   }
 
-  // ML
-  const dropMlHome = (op.ml_home && game.ml_home) ? op.ml_home - game.ml_home : null
-  const dropMlAway = (op.ml_away && game.ml_away) ? op.ml_away - game.ml_away : null
-  if (dropMlHome !== null || dropMlAway !== null || hasSteamMl) {
-    const h = dropMlHome ?? 0, a = dropMlAway ?? 0
-    const [label, drop] = h >= a ? [`홈 ML`, h] : [`원정 ML`, a]
-    const score = calcScore(drop, hasSteamMl, false)
-    if (score > 0) signals.push({ label, drop, score })
-  }
-
-  // 핸디 — 기준선이 실제로 변경된 경우에만 방향으로 판단
-  if (hasLineSp && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts) {
-    const delta = game.sp_pts - op.sp_pts
-    const label = delta < 0 ? '홈 핸디' : '원정 핸디'
-    const base = hasSteamSp ? 3 : 2
-    signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
-  } else {
-    const dropSpHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : null
-    const dropSpAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : null
-    if (dropSpHome !== null || dropSpAway !== null || hasSteamSp) {
-      const h = dropSpHome ?? 0, a = dropSpAway ?? 0
-      const [label, drop] = h >= a ? [`홈 핸디`, h] : [`원정 핸디`, a]
-      const score = calcScore(drop, hasSteamSp, false)
-      if (score > 0) signals.push({ label, drop, score })
+  // ── 핸디: 스팀 or 라인변경 alert 있을 때만 ────────────────
+  if (hasSteamSp || hasLineSp) {
+    if (hasLineSp && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts) {
+      const delta = game.sp_pts - op.sp_pts
+      const label = delta < 0 ? '홈 핸디' : '원정 핸디'
+      const base = hasSteamSp ? 3 : 2
+      signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
+    } else if (hasSteamSp) {
+      const dropHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : 0
+      const dropAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : 0
+      const [label, drop] = dropHome >= dropAway ? ['홈 핸디', dropHome] : ['원정 핸디', dropAway]
+      const steamVal = parseFloat(alerts.find(a => a.type === 'instant_sp')?.threshold || 0)
+      const base = steamVal >= 0.20 ? 3 : 2
+      signals.push({ label, drop, score: Math.min(3, base + timeBoost) })
     }
   }
 
-  // O/U — 기준선이 실제로 변경된 경우에만 방향으로 판단
-  if (hasLineOu && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts) {
-    const delta = game.ou_pts - op.ou_pts
-    const label = delta < 0 ? '언더' : '오버'
-    const base = hasSteamOu ? 3 : 2
-    signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
-  } else {
-    const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : null
-    const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : null
-    if (dropOver !== null || dropUnder !== null || hasSteamOu) {
-      const o = dropOver ?? 0, u = dropUnder ?? 0
-      const [label, drop] = o >= u ? [`오버`, o] : [`언더`, u]
-      const score = calcScore(drop, hasSteamOu, false)
-      if (score > 0) signals.push({ label, drop, score })
+  // ── O/U: 스팀 or 라인변경 alert 있을 때만 ──────────────────
+  if (hasSteamOu || hasLineOu) {
+    if (hasLineOu && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts) {
+      const delta = game.ou_pts - op.ou_pts
+      const label = delta < 0 ? '언더' : '오버'
+      const base = hasSteamOu ? 3 : 2
+      signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
+    } else if (hasSteamOu) {
+      const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : 0
+      const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : 0
+      const [label, drop] = dropOver >= dropUnder ? ['오버', dropOver] : ['언더', dropUnder]
+      const steamVal = parseFloat(alerts.find(a => a.type === 'instant_ou')?.threshold || 0)
+      const base = steamVal >= 0.20 ? 3 : 2
+      signals.push({ label, drop, score: Math.min(3, base + timeBoost) })
     }
   }
 
@@ -135,7 +126,7 @@ function sharpSignals(game) {
     const count = parseInt(a.threshold) || 0
     let sig = signals.find(s => s.label === lbl)
     if (!sig) {
-      sig = { label: lbl, drop: 0, score: 0 }
+      sig = { label: lbl, drop: 0, score: 1 }
       signals.push(sig)
     }
     sig.score = Math.min(3, sig.score + 1)
