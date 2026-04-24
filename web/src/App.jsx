@@ -298,8 +298,6 @@ export default function App() {
 
   useEffect(() => {
     fetchGames()
-    const interval = setInterval(fetchGames, 60 * 1000)
-    return () => clearInterval(interval)
   }, [])
 
   async function fetchGames() {
