@@ -64,16 +64,26 @@ def _header(game: dict) -> str:
     )
 
 
+def _pts_changed(a, b) -> bool:
+    """부동소수점 오차 방지: 소수점 2자리 반올림 후 비교"""
+    if a is None or b is None:
+        return False
+    return round(float(a), 2) != round(float(b), 2)
+
+
+def _pts_str(v) -> str:
+    """threshold 저장 시 정규화된 문자열 사용"""
+    return f"{round(float(v), 2):.2f}" if v is not None else ""
+
+
 def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
     mid    = game["matchup_id"]
     header = _header(game)
     alerts = []
 
     # 라인 변경 여부 미리 확인 (스팀무브 억제용)
-    sp_line_changed = (game.get("sp_pts") is not None and opening.get("sp_pts") is not None
-                       and game["sp_pts"] != opening["sp_pts"])
-    ou_line_changed = (game.get("ou_pts") is not None and opening.get("ou_pts") is not None
-                       and game["ou_pts"] != opening["ou_pts"])
+    sp_line_changed = _pts_changed(game.get("sp_pts"), opening.get("sp_pts"))
+    ou_line_changed = _pts_changed(game.get("ou_pts"), opening.get("ou_pts"))
 
     # 라인 변경 시 해당 마켓 스팀무브 억제 (라인변경 알림에 배당 포함되어 있으므로)
     suppressed = set()
@@ -131,11 +141,10 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
             )})
 
     # ── 핸디캡 기준선 변경 (배당 포함) ──────────────────────
-    if (game.get("sp_pts") is not None and opening.get("sp_pts") is not None
-            and game["sp_pts"] != opening["sp_pts"]):
+    if sp_line_changed:
         atype = "line_sp"
-        if not alert_sent(mid, atype, str(game["sp_pts"])):
-            save_alert(mid, atype, str(game["sp_pts"]))
+        if not alert_sent(mid, atype, _pts_str(game["sp_pts"])):
+            save_alert(mid, atype, _pts_str(game["sp_pts"]))
             delta = game["sp_pts"] - opening["sp_pts"]
 
             # 배당 변동 포함
@@ -152,11 +161,10 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
             )})
 
     # ── 오버언더 기준선 변경 (배당 포함) ────────────────────
-    if (game.get("ou_pts") is not None and opening.get("ou_pts") is not None
-            and game["ou_pts"] != opening["ou_pts"]):
+    if ou_line_changed:
         atype = "line_ou"
-        if not alert_sent(mid, atype, str(game["ou_pts"])):
-            save_alert(mid, atype, str(game["ou_pts"]))
+        if not alert_sent(mid, atype, _pts_str(game["ou_pts"])):
+            save_alert(mid, atype, _pts_str(game["ou_pts"]))
             delta = game["ou_pts"] - opening["ou_pts"]
             arrow = "❄️" if delta < 0 else "🔥"
 
