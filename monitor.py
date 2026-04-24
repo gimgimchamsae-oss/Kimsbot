@@ -11,7 +11,6 @@ from db import init_db, save_snapshot, save_opening, get_opening, get_prev_snaps
 from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
-OPENING_WINDOW_H = 24  # 24시간 이내 경기만 오프닝 등록
 
 LEAGUE_FLAG = {
     # 야구
@@ -54,13 +53,6 @@ def _parse_kst(starts_at: str) -> datetime | None:
     except Exception:
         return None
 
-
-def _within_24h(starts_at: str) -> bool:
-    dt = _parse_kst(starts_at)
-    if dt is None:
-        return False
-    diff_h = (dt - datetime.now(KST)).total_seconds() / 3600
-    return -1 <= diff_h <= OPENING_WINDOW_H  # 진행 중 포함
 
 
 def notify(alert: dict):
@@ -119,7 +111,7 @@ def run():
     games = fetch_games()
     print(f"경기 {len(games)}개 처리 중...")
 
-    # 신규 오프닝 경기 수집 (24시간 이내, 시간순 정렬 후 알림)
+    # 신규 오프닝 수집 (시간 제한 없이 전체 등록)
     new_openings = []
     total_alerts = 0
 
@@ -128,15 +120,13 @@ def run():
         opening = get_opening(mid)
         prev    = get_prev_snapshot(mid)
 
-        # 신규 경기 → 24시간 이내면 오프닝 저장
         if opening is None:
             try:
                 save_opening(game)
-                print(f"[DEBUG] 저장 성공: {game['home']} vs {game['away']}")
+                print(f"[오프닝] {game['home']} vs {game['away']} ({game['starts_at']})")
             except Exception as e:
-                print(f"[DEBUG] 저장 실패: {game['home']} vs {game['away']} → {e}")
-            if _within_24h(game["starts_at"]):
-                new_openings.append(game)
+                print(f"[오프닝 실패] {game['home']} vs {game['away']} → {e}")
+            new_openings.append(game)
             opening = game
 
         # 알림 체크 (모든 경기 대상)
