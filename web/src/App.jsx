@@ -7,7 +7,19 @@ const SPORTS = [
   { key: 'soccer',     label: '⚽ 축구' },
   { key: 'basketball', label: '🏀 농구' },
   { key: 'hockey',     label: '🏒 하키' },
+  { key: 'past',       label: '🕐 지난경기' },
 ]
+
+function isInPast(startsAt) {
+  if (!startsAt) return false
+  try {
+    const m = startsAt.match(/(\d{2})\/(\d{2}) (\d{2}):(\d{2})/)
+    if (!m) return false
+    const year = new Date().getFullYear()
+    const utcMs = Date.UTC(year, parseInt(m[1]) - 1, parseInt(m[2]), parseInt(m[3]) - 9, parseInt(m[4]))
+    return utcMs < Date.now()
+  } catch { return false }
+}
 
 const LEAGUE_FLAGS = {
   MLB: '🇺🇸', KBO: '🇰🇷', NPB: '🇯🇵',
@@ -231,13 +243,31 @@ export default function App() {
     ? Object.values(LEAGUES_BY_SPORT).flat()
     : (LEAGUES_BY_SPORT[sport] || [])
 
+  const isPastView = sport === 'past'
+
   const filtered = games.filter(g => {
+    const past = isInPast(g.starts_at)
+    if (isPastView) return past
+    if (past) return false
     if (sport !== 'all' && g.sport !== sport) return false
     if (league !== 'all' && g.league !== league) return false
     return true
   })
 
-  const sorted = [...filtered].sort((a, b) => a.starts_at > b.starts_at ? 1 : -1)
+  // 지난경기: 리그별 그룹 + 최신순 / 예정경기: 시간순 평면
+  const sorted = [...filtered].sort((a, b) =>
+    isPastView
+      ? (b.starts_at > a.starts_at ? 1 : -1)
+      : (a.starts_at > b.starts_at ? 1 : -1)
+  )
+
+  const grouped = isPastView
+    ? sorted.reduce((acc, g) => {
+        if (!acc[g.league]) acc[g.league] = []
+        acc[g.league].push(g)
+        return acc
+      }, {})
+    : null
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -291,7 +321,16 @@ export default function App() {
         ) : filtered.length === 0 ? (
           <div className="text-center text-gray-500 py-20">경기 없음</div>
         ) : (
-          sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
+          isPastView
+            ? Object.entries(grouped).map(([leagueName, leagueGames]) => (
+                <div key={leagueName} className="mb-6">
+                  <div className="text-sm font-semibold text-gray-400 mb-2 px-1">
+                    {LEAGUE_FLAGS[leagueName]} {leagueName} ({leagueGames.length})
+                  </div>
+                  {leagueGames.map(g => <GameCard key={g.matchup_id} game={g} />)}
+                </div>
+              ))
+            : sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
         )}
       </div>
     </div>
