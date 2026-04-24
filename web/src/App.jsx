@@ -72,24 +72,40 @@ function sharpSignals(game) {
     if (score > 0) signals.push({ label, drop, score })
   }
 
-  // 핸디
-  const dropSpHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : null
-  const dropSpAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : null
-  if (dropSpHome !== null || dropSpAway !== null || hasSteamSp || hasLineSp) {
-    const h = dropSpHome ?? 0, a = dropSpAway ?? 0
-    const [label, drop] = h >= a ? [`홈 핸디`, h] : [`원정 핸디`, a]
-    const score = calcScore(drop, hasSteamSp, hasLineSp)
-    if (score > 0) signals.push({ label, drop, score })
+  // 핸디 — 기준선 변경 시엔 방향으로 판단
+  if (hasLineSp && op.sp_pts != null && game.sp_pts != null) {
+    const delta = game.sp_pts - op.sp_pts
+    // sp_pts 감소(홈이 더 많이 줌) = 홈에 샤프머니, 증가 = 원정에 샤프머니
+    const label = delta < 0 ? '홈 핸디' : '원정 핸디'
+    const score = hasSteamSp ? 3 : 2
+    signals.push({ label, drop: Math.abs(delta), score })
+  } else {
+    const dropSpHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : null
+    const dropSpAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : null
+    if (dropSpHome !== null || dropSpAway !== null || hasSteamSp) {
+      const h = dropSpHome ?? 0, a = dropSpAway ?? 0
+      const [label, drop] = h >= a ? [`홈 핸디`, h] : [`원정 핸디`, a]
+      const score = calcScore(drop, hasSteamSp, false)
+      if (score > 0) signals.push({ label, drop, score })
+    }
   }
 
-  // O/U
-  const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : null
-  const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : null
-  if (dropOver !== null || dropUnder !== null || hasSteamOu || hasLineOu) {
-    const o = dropOver ?? 0, u = dropUnder ?? 0
-    const [label, drop] = o >= u ? [`오버`, o] : [`언더`, u]
-    const score = calcScore(drop, hasSteamOu, hasLineOu)
-    if (score > 0) signals.push({ label, drop, score })
+  // O/U — 기준선 변경 시엔 방향으로 판단
+  if (hasLineOu && op.ou_pts != null && game.ou_pts != null) {
+    const delta = game.ou_pts - op.ou_pts
+    // 기준선 하락 = 언더에 샤프머니, 상승 = 오버에 샤프머니
+    const label = delta < 0 ? '언더' : '오버'
+    const score = hasSteamOu ? 3 : 2
+    signals.push({ label, drop: Math.abs(delta), score })
+  } else {
+    const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : null
+    const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : null
+    if (dropOver !== null || dropUnder !== null || hasSteamOu) {
+      const o = dropOver ?? 0, u = dropUnder ?? 0
+      const [label, drop] = o >= u ? [`오버`, o] : [`언더`, u]
+      const score = calcScore(drop, hasSteamOu, false)
+      if (score > 0) signals.push({ label, drop, score })
+    }
   }
 
   return signals
