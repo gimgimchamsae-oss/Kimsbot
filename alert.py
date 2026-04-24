@@ -26,6 +26,8 @@ LEAGUE_FLAG = {
     "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
     "K리그1": "🇰🇷", "MLS": "🇺🇸",
     "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
+    "NBA": "🇺🇸", "KBL": "🇰🇷",
+    "NHL": "🇺🇸",
 }
 
 
@@ -62,16 +64,44 @@ def _header(game: dict) -> str:
     )
 
 
-def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
+def _pts_changed(a, b) -> bool:
+    """부동소수점 오차 방지: 소수점 2자리 반올림 후 비교"""
+    if a is None or b is None:
+        return False
+    return round(float(a), 2) != round(float(b), 2)
+
+
+def _pts_str(v) -> str:
+    """threshold 저장 시 정규화된 문자열 사용"""
+    return f"{round(float(v), 2):.2f}" if v is not None else ""
+
+
+def _find_streak(recents: list, field: str) -> int:
+    """recents(최신순) 리스트에서 field 값이 연속 하락한 횟수 반환"""
+    vals = []
+    for r in recents:
+        v = r.get(field)
+        if v is not None:
+            vals.append(float(v))
+    if len(vals) < 2:
+        return 0
+    streak = 0
+    for i in range(len(vals) - 1):
+        if vals[i] < vals[i + 1] - 0.001:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def check_alerts(game: dict, opening: dict, prev: dict, recents: list = None) -> list[dict]:
     mid    = game["matchup_id"]
     header = _header(game)
     alerts = []
 
     # 라인 변경 여부 미리 확인 (스팀무브 억제용)
-    sp_line_changed = (game.get("sp_pts") is not None and opening.get("sp_pts") is not None
-                       and game["sp_pts"] != opening["sp_pts"])
-    ou_line_changed = (game.get("ou_pts") is not None and opening.get("ou_pts") is not None
-                       and game["ou_pts"] != opening["ou_pts"])
+    sp_line_changed = _pts_changed(game.get("sp_pts"), opening.get("sp_pts"))
+    ou_line_changed = _pts_changed(game.get("ou_pts"), opening.get("ou_pts"))
 
     # 라인 변경 시 해당 마켓 스팀무브 억제 (라인변경 알림에 배당 포함되어 있으므로)
     suppressed = set()
@@ -129,11 +159,10 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
             )})
 
     # ── 핸디캡 기준선 변경 (배당 포함) ──────────────────────
-    if (game.get("sp_pts") is not None and opening.get("sp_pts") is not None
-            and game["sp_pts"] != opening["sp_pts"]):
+    if sp_line_changed:
         atype = "line_sp"
-        if not alert_sent(mid, atype, str(game["sp_pts"])):
-            save_alert(mid, atype, str(game["sp_pts"]))
+        if not alert_sent(mid, atype, _pts_str(game["sp_pts"])):
+            save_alert(mid, atype, _pts_str(game["sp_pts"]))
             delta = game["sp_pts"] - opening["sp_pts"]
 
             # 배당 변동 포함
@@ -150,11 +179,10 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
             )})
 
     # ── 오버언더 기준선 변경 (배당 포함) ────────────────────
-    if (game.get("ou_pts") is not None and opening.get("ou_pts") is not None
-            and game["ou_pts"] != opening["ou_pts"]):
+    if ou_line_changed:
         atype = "line_ou"
-        if not alert_sent(mid, atype, str(game["ou_pts"])):
-            save_alert(mid, atype, str(game["ou_pts"]))
+        if not alert_sent(mid, atype, _pts_str(game["ou_pts"])):
+            save_alert(mid, atype, _pts_str(game["ou_pts"]))
             delta = game["ou_pts"] - opening["ou_pts"]
             arrow = "❄️" if delta < 0 else "🔥"
 
@@ -168,6 +196,31 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
                 f"📊 배당 변동\n"
                 f"  오버: {opening['ou_over']:.2f} → {game['ou_over']:.2f}  ({over_chg})\n"
                 f"  언더: {opening['ou_under']:.2f} → {game['ou_under']:.2f}  ({under_chg})"
+            )})
+
+    # ── 연속 하락 (streak) ─────────────────────────────────────
+    if recents:
+        STREAK_FIELDS = [
+            ("ml_home",  "streak_ml_home",  "홈 ML"),
+            ("ml_away",  "streak_ml_away",  "원정 ML"),
+            ("sp_home",  "streak_sp_home",  "홈 핸디"),
+            ("sp_away",  "streak_sp_away",  "원정 핸디"),
+            ("ou_over",  "streak_ou_over",  "오버"),
+            ("ou_under", "streak_ou_under", "언더"),
+        ]
+        MIN_STREAK = 3
+        for field, atype, lbl in STREAK_FIELDS:
+            streak = _find_streak(recents, field)
+            if streak < MIN_STREAK:
+                continue
+            key = str(streak)
+            if alert_sent(mid, atype, key):
+                continue
+            save_alert(mid, atype, key)
+            alerts.append({"type": "연속하락", "msg": (
+                f"📉 [{lbl} {streak}연속 하락]\n\n"
+                f"{header}\n\n"
+                f"💡 {lbl} 배당이 {streak}번 연속 하락 중"
             )})
 
     return alerts

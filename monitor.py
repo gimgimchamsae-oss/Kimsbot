@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone, timedelta
 
 from pinnacle_scraper import fetch_games
-from db import init_db, save_snapshot, save_opening, get_opening, get_prev_snapshot
+from db import init_db, save_snapshot, save_opening, get_opening, get_prev_snapshot, get_recent_snapshots
 from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
@@ -136,7 +136,8 @@ def run():
             opening = game
 
         # 알림 체크 (모든 경기 대상)
-        alerts = check_alerts(game, opening, prev)
+        recents = get_recent_snapshots(mid, limit=10)
+        alerts = check_alerts(game, opening, prev, recents)
         for a in alerts:
             notify(a)
         total_alerts += len(alerts)

@@ -110,15 +110,21 @@ def save_snapshot(game: dict):
 
 
 def get_prev_snapshot(matchup_id: int):
+    rows = get_recent_snapshots(matchup_id, limit=1)
+    return rows[0] if rows else None
+
+
+def get_recent_snapshots(matchup_id: int, limit: int = 10) -> list:
     if USE_SUPABASE:
-        res = _sb().table("snapshots").select("*").eq("matchup_id", matchup_id).order("id", desc=True).limit(1).execute()
-        return res.data[0] if res.data else None
+        res = _sb().table("snapshots").select("*").eq("matchup_id", matchup_id).order("id", desc=True).limit(limit).execute()
+        return res.data or []
     else:
         with _sqlite() as conn:
-            row = conn.execute(
-                "SELECT * FROM snapshots WHERE matchup_id=? ORDER BY id DESC LIMIT 1", (matchup_id,)
-            ).fetchone()
-            return dict(row) if row else None
+            rows = conn.execute(
+                "SELECT * FROM snapshots WHERE matchup_id=? ORDER BY id DESC LIMIT ?",
+                (matchup_id, limit)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
 
 # ── 알림 이력 ────────────────────────────────────────────
