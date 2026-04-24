@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
 const SPORTS = [
-  { key: 'all',      label: '전체' },
-  { key: 'baseball', label: '⚾ 야구' },
-  { key: 'soccer',   label: '⚽ 축구' },
+  { key: 'all',        label: '전체' },
+  { key: 'baseball',   label: '⚾ 야구' },
+  { key: 'soccer',     label: '⚽ 축구' },
+  { key: 'basketball', label: '🏀 농구' },
+  { key: 'hockey',     label: '🏒 하키' },
 ]
 
 const LEAGUE_FLAGS = {
@@ -13,11 +15,15 @@ const LEAGUE_FLAGS = {
   'Ligue 1': '🇫🇷', 'La Liga': '🇪🇸',
   'K리그1': '🇰🇷', MLS: '🇺🇸',
   UCL: '🏆', Europa: '🟠', Conference: '🟢',
+  NBA: '🇺🇸', KBL: '🇰🇷',
+  NHL: '🇺🇸',
 }
 
 const LEAGUES_BY_SPORT = {
-  baseball: ['MLB', 'KBO', 'NPB'],
-  soccer: ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
+  baseball:   ['MLB', 'KBO', 'NPB'],
+  soccer:     ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
+  basketball: ['NBA', 'KBL'],
+  hockey:     ['NHL'],
 }
 
 // highlight: null | 'blue' | 'red'

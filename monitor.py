@@ -22,6 +22,10 @@ LEAGUE_FLAG = {
     "K리그1": "🇰🇷", "MLS": "🇺🇸",
     # UEFA 대회
     "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
+    # 농구
+    "NBA": "🇺🇸", "KBL": "🇰🇷",
+    # 아이스하키
+    "NHL": "🇺🇸",
 }
 
 

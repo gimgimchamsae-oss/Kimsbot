@@ -2,6 +2,8 @@
 Pinnacle 배당 수집 (requests 기반)
 야구: MLB / KBO / NPB
 축구: EPL / Bundesliga / Serie A / Ligue 1 / La Liga
+농구: NBA / KBL
+아이스하키: NHL
 """
 
 import requests
@@ -37,6 +39,11 @@ LEAGUES = {
     "2627":   ("UCL",          "soccer"),
     "2630":   ("Europa",       "soccer"),
     "214101": ("Conference",   "soccer"),
+    # 농구
+    "487":    ("NBA",          "basketball"),
+    "3389":   ("KBL",          "basketball"),   # KBL ID — GitHub Actions 첫 실행 시 확인 필요
+    # 아이스하키
+    "1456":   ("NHL",          "hockey"),
 }
 
 

@@ -26,6 +26,8 @@ LEAGUE_FLAG = {
     "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
     "K리그1": "🇰🇷", "MLS": "🇺🇸",
     "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
+    "NBA": "🇺🇸", "KBL": "🇰🇷",
+    "NHL": "🇺🇸",
 }
 
 
