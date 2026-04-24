@@ -176,6 +176,7 @@ function GameCard({ game }) {
 export default function App() {
   const [games, setGames]           = useState([])
   const [tab, setTab]               = useState('all')
+  const [pastLeague, setPastLeague] = useState('all')
   const [loading, setLoading]       = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
 
@@ -229,7 +230,11 @@ export default function App() {
 
   const filtered = games.filter(g => {
     const past = isInPast(g.starts_at)
-    if (isPastView) return past
+    if (isPastView) {
+      if (!past) return false
+      if (pastLeague !== 'all' && g.league !== pastLeague) return false
+      return true
+    }
     if (past) return false
     if (tab !== 'all' && g.league !== tab) return false
     return true
@@ -241,18 +246,14 @@ export default function App() {
       : (a.starts_at > b.starts_at ? 1 : -1)
   )
 
-  // 지난경기: 리그별 그룹
-  const grouped = isPastView
-    ? sorted.reduce((acc, g) => {
-        if (!acc[g.league]) acc[g.league] = []
-        acc[g.league].push(g)
-        return acc
-      }, {})
-    : null
-
   // 탭 목록: 전체 + 데이터 있는 리그만 + 지난경기
   const activeLegues = ALL_LEAGUES.filter(l =>
     games.some(g => g.league === l && !isInPast(g.starts_at))
+  )
+
+  // 지난경기 안 리그 탭: 지난경기 있는 리그만
+  const pastLeagues = ALL_LEAGUES.filter(l =>
+    games.some(g => g.league === l && isInPast(g.starts_at))
   )
 
   return (
@@ -284,13 +285,36 @@ export default function App() {
             </button>
           ))}
           <button
-            onClick={() => setTab('past')}
+            onClick={() => { setTab('past'); setPastLeague('all') }}
             className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors
               ${tab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
           >
             🕐 지난경기
           </button>
         </div>
+
+        {/* 지난경기 리그 탭 */}
+        {isPastView && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide mt-2">
+            <button
+              onClick={() => setPastLeague('all')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors
+                ${pastLeague === 'all' ? 'bg-gray-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+            >
+              전체
+            </button>
+            {pastLeagues.map(l => (
+              <button
+                key={l}
+                onClick={() => setPastLeague(l)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors
+                  ${pastLeague === l ? 'bg-gray-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+              >
+                {LEAGUE_FLAGS[l]} {l}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 경기 목록 */}
@@ -299,15 +323,6 @@ export default function App() {
           <div className="text-center text-gray-500 py-20">불러오는 중...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center text-gray-500 py-20">경기 없음</div>
-        ) : isPastView ? (
-          Object.entries(grouped).map(([leagueName, leagueGames]) => (
-            <div key={leagueName} className="mb-6">
-              <div className="text-sm font-semibold text-gray-400 mb-2 px-1">
-                {LEAGUE_FLAGS[leagueName]} {leagueName} ({leagueGames.length})
-              </div>
-              {leagueGames.map(g => <GameCard key={g.matchup_id} game={g} />)}
-            </div>
-          ))
         ) : (
           sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
         )}
