@@ -15,14 +15,14 @@ const LEAGUE_FLAGS = {
   'Ligue 1': '🇫🇷', 'La Liga': '🇪🇸',
   'K리그1': '🇰🇷', MLS: '🇺🇸',
   UCL: '🏆', Europa: '🟠', Conference: '🟢',
-  NBA: '🇺🇸', KBL: '🇰🇷',
+  NBA: '🇺🇸',
   NHL: '🇺🇸',
 }
 
 const LEAGUES_BY_SPORT = {
   baseball:   ['MLB', 'KBO', 'NPB'],
   soccer:     ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
-  basketball: ['NBA', 'KBL'],
+  basketball: ['NBA'],
   hockey:     ['NHL'],
 }
 
