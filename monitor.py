@@ -7,7 +7,7 @@ import os
 from datetime import datetime, timezone, timedelta
 
 from pinnacle_scraper import fetch_games
-from db import init_db, save_snapshot, save_opening, get_opening, get_prev_snapshot, get_recent_snapshots
+from db import init_db, save_snapshot, save_opening, fill_opening_nulls, get_opening, get_prev_snapshot, get_recent_snapshots
 from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
@@ -128,6 +128,8 @@ def run():
                 print(f"[오프닝 실패] {game['home']} vs {game['away']} → {e}")
             new_openings.append(game)
             opening = game
+        else:
+            fill_opening_nulls(game)
 
         # 알림 체크 (모든 경기 대상)
         recents = get_recent_snapshots(mid, limit=10)

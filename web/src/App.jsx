@@ -521,13 +521,11 @@ export default function App() {
 
   async function fetchGames() {
     setLoading(true)
-    const linesRes = await supabase.from('latest_lines').select('*').order('starts_at', { ascending: true })
-    const matchupIds = (linesRes.data || []).map(g => g.matchup_id)
-
-    const [openingsRes, alertsRes] = await Promise.all([
+    const [linesRes, openingsRes, alertsRes] = await Promise.all([
+      supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
       supabase.from('opening_lines')
         .select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
-        .in('matchup_id', matchupIds),
+        .limit(3000),
       supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
     ])
     const openingsMap = Object.fromEntries((openingsRes.data || []).map(o => [o.matchup_id, o]))
