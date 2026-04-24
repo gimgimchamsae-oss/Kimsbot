@@ -43,34 +43,72 @@ function fmtTime(ts) {
   } catch { return '' }
 }
 
-// ① Sharp Score
-function sharpScore(game) {
+// ① 마켓·사이드별 샤프 시그널
+function sharpSignals(game) {
   const op = game.opening || {}
   const alerts = game.recentAlerts || []
-  const hasLineChange = alerts.some(a => a.type === 'line_sp' || a.type === 'line_ou')
-  const hasSteam = alerts.some(a => a.type.startsWith('instant_'))
-  const drops = [
-    op.ml_home  && game.ml_home  ? Math.abs(game.ml_home  - op.ml_home)  : 0,
-    op.ml_away  && game.ml_away  ? Math.abs(game.ml_away  - op.ml_away)  : 0,
-    op.sp_home  && game.sp_home  ? Math.abs(game.sp_home  - op.sp_home)  : 0,
-    op.sp_away  && game.sp_away  ? Math.abs(game.sp_away  - op.sp_away)  : 0,
-    op.ou_over  && game.ou_over  ? Math.abs(game.ou_over  - op.ou_over)  : 0,
-    op.ou_under && game.ou_under ? Math.abs(game.ou_under - op.ou_under) : 0,
-  ]
-  const maxDrop = Math.max(...drops)
-  if ((hasLineChange && hasSteam) || maxDrop >= 0.20) return 3
-  if (hasSteam || hasLineChange || maxDrop >= 0.10) return 2
-  if (alerts.length > 0 || maxDrop >= 0.05) return 1
-  return 0
+  const hasSteamMl = alerts.some(a => a.type === 'instant_ml')
+  const hasSteamSp = alerts.some(a => a.type === 'instant_sp')
+  const hasSteamOu = alerts.some(a => a.type === 'instant_ou')
+  const hasLineSp  = alerts.some(a => a.type === 'line_sp')
+  const hasLineOu  = alerts.some(a => a.type === 'line_ou')
+
+  const signals = []
+
+  function calcScore(drop, hasSteam, hasLine) {
+    if ((hasLine && hasSteam) || drop >= 0.20) return 3
+    if (hasSteam || hasLine || drop >= 0.10) return 2
+    if (drop >= 0.05) return 1
+    return 0
+  }
+
+  // ML
+  const dropMlHome = (op.ml_home && game.ml_home) ? op.ml_home - game.ml_home : null
+  const dropMlAway = (op.ml_away && game.ml_away) ? op.ml_away - game.ml_away : null
+  if (dropMlHome !== null || dropMlAway !== null || hasSteamMl) {
+    const h = dropMlHome ?? 0, a = dropMlAway ?? 0
+    const [label, drop] = h >= a ? [`홈 ML`, h] : [`원정 ML`, a]
+    const score = calcScore(drop, hasSteamMl, false)
+    if (score > 0) signals.push({ label, drop, score })
+  }
+
+  // 핸디
+  const dropSpHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : null
+  const dropSpAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : null
+  if (dropSpHome !== null || dropSpAway !== null || hasSteamSp || hasLineSp) {
+    const h = dropSpHome ?? 0, a = dropSpAway ?? 0
+    const [label, drop] = h >= a ? [`홈 핸디`, h] : [`원정 핸디`, a]
+    const score = calcScore(drop, hasSteamSp, hasLineSp)
+    if (score > 0) signals.push({ label, drop, score })
+  }
+
+  // O/U
+  const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : null
+  const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : null
+  if (dropOver !== null || dropUnder !== null || hasSteamOu || hasLineOu) {
+    const o = dropOver ?? 0, u = dropUnder ?? 0
+    const [label, drop] = o >= u ? [`오버`, o] : [`언더`, u]
+    const score = calcScore(drop, hasSteamOu, hasLineOu)
+    if (score > 0) signals.push({ label, drop, score })
+  }
+
+  return signals
 }
 
-function SharpStars({ score }) {
-  if (score === 0) return null
-  const color = score === 3 ? 'text-red-400' : score === 2 ? 'text-yellow-400' : 'text-blue-400'
+function SharpSignals({ signals }) {
+  if (!signals || signals.length === 0) return null
   return (
-    <span className={`text-xl font-bold tracking-tight ${color}`}>
-      {'★'.repeat(score)}{'☆'.repeat(3 - score)}
-    </span>
+    <div className="flex gap-2 flex-wrap">
+      {signals.map(s => {
+        const color = s.score === 3 ? 'text-red-400' : s.score === 2 ? 'text-yellow-400' : 'text-blue-400'
+        return (
+          <div key={s.label} className="flex items-center gap-0.5 bg-gray-700 rounded-lg px-2 py-1">
+            <span className="text-sm font-semibold text-gray-200">{s.label}</span>
+            <span className={`text-sm font-bold ${color}`}> {'★'.repeat(s.score)}{'☆'.repeat(3 - s.score)}</span>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -254,10 +292,8 @@ function HistoryModal({ game, onClose }) {
 
         <div className="mb-3">
           <div className="text-sm text-gray-400 mb-1">{flag} {game.league} · {game.starts_at?.replace(' KST','')}</div>
-          <div className="flex items-center gap-2">
-            <div className="text-white font-bold text-lg">{game.home} <span className="text-gray-500 font-normal text-base">vs</span> {game.away}</div>
-            <SharpStars score={sharpScore(game)} />
-          </div>
+          <div className="text-white font-bold text-lg mb-1">{game.home} <span className="text-gray-500 font-normal text-base">vs</span> {game.away}</div>
+          <SharpSignals signals={sharpSignals(game)} />
         </div>
 
         <div className="flex gap-2 mb-3">
@@ -338,7 +374,7 @@ function GameCard({ game, onClick }) {
   const flag     = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
   const op       = game.opening || {}
-  const score    = sharpScore(game)
+  const signals  = sharpSignals(game)
 
   function dropHighlight(curA, openA, curB, openB) {
     if (curA == null || openA == null || curB == null || openB == null) return [null, null]
@@ -356,10 +392,9 @@ function GameCard({ game, onClick }) {
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700 cursor-pointer active:opacity-80" onClick={onClick}>
-      {/* 리그 + 샤프점수 */}
-      <div className="flex items-center justify-between mb-1">
+      {/* 리그 */}
+      <div className="mb-1">
         <span className="text-base font-bold text-gray-200">{flag} {game.league}</span>
-        <SharpStars score={score} />
       </div>
 
       {/* 팀명 */}
@@ -371,6 +406,9 @@ function GameCard({ game, onClick }) {
 
       {/* 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
+
+      {/* 마켓별 샤프 점수 */}
+      {signals.length > 0 && <div className="mb-2"><SharpSignals signals={signals} /></div>}
 
       {/* 경기시간 + 기준 */}
       <div className="mb-3 flex items-center justify-between">
