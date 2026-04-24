@@ -114,9 +114,10 @@ function GameCard({ game }) {
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
-      {/* 1. 리그 */}
-      <div className="mb-1">
+      {/* 1. 리그 + 경기시간 */}
+      <div className="flex justify-between items-center mb-1">
         <span className="text-base font-bold text-gray-200">{flag} {game.league}</span>
+        <span className="text-base font-semibold text-gray-300">⏰ {game.starts_at?.replace(' KST','')}</span>
       </div>
 
       {/* 2. 팀명 */}
@@ -128,11 +129,6 @@ function GameCard({ game }) {
 
       {/* 3. 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
-
-      {/* 4. 경기시간 */}
-      <div className="mb-3">
-        <span className="text-sm text-gray-400">⏰ {game.starts_at?.replace(' KST','')}</span>
-      </div>
 
       {/* 승패 배당 */}
       <div className="flex gap-1.5 mb-1.5">
