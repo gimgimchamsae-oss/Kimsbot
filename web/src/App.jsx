@@ -72,10 +72,9 @@ function sharpSignals(game) {
     if (score > 0) signals.push({ label, drop, score })
   }
 
-  // 핸디 — 기준선 변경 시엔 방향으로 판단
-  if (hasLineSp && op.sp_pts != null && game.sp_pts != null) {
+  // 핸디 — 기준선이 실제로 변경된 경우에만 방향으로 판단
+  if (hasLineSp && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts) {
     const delta = game.sp_pts - op.sp_pts
-    // sp_pts 감소(홈이 더 많이 줌) = 홈에 샤프머니, 증가 = 원정에 샤프머니
     const label = delta < 0 ? '홈 핸디' : '원정 핸디'
     const score = hasSteamSp ? 3 : 2
     signals.push({ label, drop: Math.abs(delta), score })
@@ -90,10 +89,9 @@ function sharpSignals(game) {
     }
   }
 
-  // O/U — 기준선 변경 시엔 방향으로 판단
-  if (hasLineOu && op.ou_pts != null && game.ou_pts != null) {
+  // O/U — 기준선이 실제로 변경된 경우에만 방향으로 판단
+  if (hasLineOu && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts) {
     const delta = game.ou_pts - op.ou_pts
-    // 기준선 하락 = 언더에 샤프머니, 상승 = 오버에 샤프머니
     const label = delta < 0 ? '언더' : '오버'
     const score = hasSteamOu ? 3 : 2
     signals.push({ label, drop: Math.abs(delta), score })
@@ -162,8 +160,12 @@ function SharpBadge({ alerts, game }) {
           case 'instant_ml': label = '⚡ML'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'instant_sp': label = '⚡핸디'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'instant_ou': label = '⚡O/U'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
-          case 'line_sp': label = '🔄핸디'; detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`; break
-          case 'line_ou': label = '🔄O/U'; detail = op.ou_pts != null ? `${op.ou_pts}→${game.ou_pts}` : ''; break
+          case 'line_sp':
+            if (op.sp_pts == null || op.sp_pts === game.sp_pts) return null
+            label = '🔄핸디'; detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`; break
+          case 'line_ou':
+            if (op.ou_pts == null || op.ou_pts === game.ou_pts) return null
+            label = '🔄O/U'; detail = `${op.ou_pts}→${game.ou_pts}`; break
           default: label = type; detail = threshold || ''
         }
         return (
