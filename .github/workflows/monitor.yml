@@ -11,15 +11,26 @@ jobs:
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('**/requirements*.txt') }}-requests-supabase
+          restore-keys: pip-
+
       - run: pip install requests supabase
+
       - uses: actions/cache@v4
         with:
           path: pinnacle_odds.db
           key: pinnacle-db-${{ github.run_number }}
           restore-keys: pinnacle-db-
+
       - run: python monitor.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
