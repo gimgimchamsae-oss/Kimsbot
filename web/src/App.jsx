@@ -237,11 +237,7 @@ export default function App() {
     return true
   })
 
-  const grouped = filtered.reduce((acc, g) => {
-    if (!acc[g.league]) acc[g.league] = []
-    acc[g.league].push(g)
-    return acc
-  }, {})
+  const sorted = [...filtered].sort((a, b) => a.starts_at > b.starts_at ? 1 : -1)
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -295,14 +291,7 @@ export default function App() {
         ) : filtered.length === 0 ? (
           <div className="text-center text-gray-500 py-20">경기 없음</div>
         ) : (
-          Object.entries(grouped).map(([leagueName, leagueGames]) => (
-            <div key={leagueName} className="mb-6">
-              <div className="text-sm font-semibold text-gray-400 mb-2 px-1">
-                {LEAGUE_FLAGS[leagueName]} {leagueName} ({leagueGames.length})
-              </div>
-              {leagueGames.map(g => <GameCard key={g.matchup_id} game={g} />)}
-            </div>
-          ))
+          sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
         )}
       </div>
     </div>
