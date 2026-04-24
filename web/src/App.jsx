@@ -111,6 +111,7 @@ function GameCard({ game }) {
 
   const [mlHomeHL, mlAwayHL] = dropHighlight(game.ml_home, op.ml_home, game.ml_away, op.ml_away)
   const [spHomeHL, spAwayHL] = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
+  const [ouOverHL, ouUnderHL] = dropHighlight(game.ou_over, op.ou_over, game.ou_under, op.ou_under)
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
@@ -162,8 +163,8 @@ function GameCard({ game }) {
       {/* 오버언더 */}
       {game.ou_pts != null && (
         <div className="flex gap-1.5">
-          <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} />
-          <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} />
+          <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} highlight={ouOverHL} />
+          <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} highlight={ouUnderHL} />
         </div>
       )}
     </div>
