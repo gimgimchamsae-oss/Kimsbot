@@ -130,14 +130,31 @@ def fetch_games() -> list[dict]:
     return games
 
 
+def discover_leagues(sport_id: int):
+    """스포츠 ID로 Pinnacle 전체 리그 목록 출력 (KBL 등 ID 확인용)"""
+    try:
+        data = _get(f"/sports/{sport_id}/leagues?all=false")
+        for l in sorted(data, key=lambda x: x.get("name", "")):
+            print(f"  {l['id']:>10}  {l.get('name','')}")
+    except Exception as e:
+        print(f"[discover_leagues] 오류: {e}")
+
+
 if __name__ == "__main__":
-    games = fetch_games()
-    print(f"수집 완료: {len(games)}경기 ({datetime.now(KST).strftime('%H:%M:%S KST')})\n")
-    for g in sorted(games, key=lambda x: x["starts_at"]):
-        draw = f" / 무 {g['ml_draw']}" if g.get("ml_draw") else ""
-        print(f"[{g['league']}] {g['away']} @ {g['home']} ({g['starts_at']})")
-        print(f"  ML: 원정 {g['ml_away']} / 홈 {g['ml_home']}{draw}")
-        if g['sp_pts'] is not None:
-            print(f"  핸디: {g['sp_pts']:+.1f}  원정 {g['sp_away']} / 홈 {g['sp_home']}")
-        if g['ou_pts'] is not None:
-            print(f"  O/U: {g['ou_pts']}  오버 {g['ou_over']} / 언더 {g['ou_under']}")
+    import sys
+    if "--discover" in sys.argv:
+        print("=== 농구(4) 리그 목록 ===")
+        discover_leagues(4)
+        print("\n=== 아이스하키(19) 리그 목록 ===")
+        discover_leagues(19)
+    else:
+        games = fetch_games()
+        print(f"수집 완료: {len(games)}경기 ({datetime.now(KST).strftime('%H:%M:%S KST')})\n")
+        for g in sorted(games, key=lambda x: x["starts_at"]):
+            draw = f" / 무 {g['ml_draw']}" if g.get("ml_draw") else ""
+            print(f"[{g['league']}] {g['away']} @ {g['home']} ({g['starts_at']})")
+            print(f"  ML: 원정 {g['ml_away']} / 홈 {g['ml_home']}{draw}")
+            if g['sp_pts'] is not None:
+                print(f"  핸디: {g['sp_pts']:+.1f}  원정 {g['sp_away']} / 홈 {g['sp_home']}")
+            if g['ou_pts'] is not None:
+                print(f"  O/U: {g['ou_pts']}  오버 {g['ou_over']} / 언더 {g['ou_under']}")
