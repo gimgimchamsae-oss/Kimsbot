@@ -36,14 +36,14 @@ function OddsTag({ label, value, openValue, highlight }) {
   const bg = highlight === 'red' ? 'bg-red-600' : highlight === 'blue' ? 'bg-blue-600' : 'bg-gray-700'
 
   return (
-    <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg ${bg}`}>
-      <span className="text-xs text-gray-400">{label}</span>
-      <span className={`text-sm font-bold ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
-      {hasDiff && (
-        <span className={`text-xs font-semibold ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
+    <div className={`flex-1 flex flex-col items-center py-3 rounded-lg ${bg}`}>
+      <span className="text-xs text-gray-300 mb-1">{label}</span>
+      <span className={`text-lg font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
+      {hasDiff ? (
+        <span className={`text-xs font-semibold mt-1 ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
           {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
         </span>
-      )}
+      ) : <span className="text-xs mt-1 opacity-0">-</span>}
     </div>
   )
 }
@@ -123,14 +123,15 @@ function GameCard({ game }) {
       {/* 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
 
-      {/* 팀명 */}
-      <div className="mb-3">
-        <div className="text-white font-semibold text-base">{game.home}</div>
-        <div className="text-gray-400 text-sm">vs {game.away}</div>
+      {/* 팀명 — 한 줄 */}
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-1.5">
+        <span className="text-white font-bold text-base">{game.home}</span>
+        <span className="text-gray-500 text-sm font-normal">vs</span>
+        <span className="text-white font-bold text-base">{game.away}</span>
       </div>
 
       {/* 승패 배당 */}
-      <div className="flex gap-2 mb-2 flex-wrap">
+      <div className="flex gap-1.5 mb-1.5">
         <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight={mlHomeHL} />
         {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw} openValue={op.ml_draw} />}
         <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} highlight={mlAwayHL} />
@@ -138,7 +139,7 @@ function GameCard({ game }) {
 
       {/* 핸디캡 */}
       {game.sp_pts != null && (
-        <div className="flex gap-2 mb-2 flex-wrap">
+        <div className="flex gap-1.5 mb-1.5">
           <OddsTag
             label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`}
             value={game.sp_home}
@@ -156,7 +157,7 @@ function GameCard({ game }) {
 
       {/* 오버언더 */}
       {game.ou_pts != null && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5">
           <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} />
           <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} />
         </div>
