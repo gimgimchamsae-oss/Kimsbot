@@ -114,20 +114,24 @@ function GameCard({ game }) {
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
-      {/* 헤더 */}
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-semibold text-gray-300">{flag} {game.league}</span>
-        <span className="text-xs text-gray-400">⏰ {game.starts_at?.replace(' KST','')}</span>
+      {/* 1. 리그 */}
+      <div className="mb-1">
+        <span className="text-base font-bold text-gray-200">{flag} {game.league}</span>
       </div>
 
-      {/* 샤프 시그널 */}
+      {/* 2. 팀명 */}
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-white font-bold text-xl">{game.home}</span>
+        <span className="text-gray-500 text-lg font-normal">vs</span>
+        <span className="text-white font-bold text-xl">{game.away}</span>
+      </div>
+
+      {/* 3. 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
 
-      {/* 팀명 — 한 줄 */}
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-2">
-        <span className="text-white font-bold text-lg">{game.home}</span>
-        <span className="text-gray-500 text-base font-normal">vs</span>
-        <span className="text-white font-bold text-lg">{game.away}</span>
+      {/* 4. 경기시간 */}
+      <div className="mb-3">
+        <span className="text-sm text-gray-400">⏰ {game.starts_at?.replace(' KST','')}</span>
       </div>
 
       {/* 승패 배당 */}
