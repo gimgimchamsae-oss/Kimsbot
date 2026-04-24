@@ -76,7 +76,25 @@ def _pts_str(v) -> str:
     return f"{round(float(v), 2):.2f}" if v is not None else ""
 
 
-def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
+def _find_streak(recents: list, field: str) -> int:
+    """recents(최신순) 리스트에서 field 값이 연속 하락한 횟수 반환"""
+    vals = []
+    for r in recents:
+        v = r.get(field)
+        if v is not None:
+            vals.append(float(v))
+    if len(vals) < 2:
+        return 0
+    streak = 0
+    for i in range(len(vals) - 1):
+        if vals[i] < vals[i + 1] - 0.001:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def check_alerts(game: dict, opening: dict, prev: dict, recents: list = None) -> list[dict]:
     mid    = game["matchup_id"]
     header = _header(game)
     alerts = []
@@ -178,6 +196,31 @@ def check_alerts(game: dict, opening: dict, prev: dict) -> list[dict]:
                 f"📊 배당 변동\n"
                 f"  오버: {opening['ou_over']:.2f} → {game['ou_over']:.2f}  ({over_chg})\n"
                 f"  언더: {opening['ou_under']:.2f} → {game['ou_under']:.2f}  ({under_chg})"
+            )})
+
+    # ── 연속 하락 (streak) ─────────────────────────────────────
+    if recents:
+        STREAK_FIELDS = [
+            ("ml_home",  "streak_ml_home",  "홈 ML"),
+            ("ml_away",  "streak_ml_away",  "원정 ML"),
+            ("sp_home",  "streak_sp_home",  "홈 핸디"),
+            ("sp_away",  "streak_sp_away",  "원정 핸디"),
+            ("ou_over",  "streak_ou_over",  "오버"),
+            ("ou_under", "streak_ou_under", "언더"),
+        ]
+        MIN_STREAK = 3
+        for field, atype, lbl in STREAK_FIELDS:
+            streak = _find_streak(recents, field)
+            if streak < MIN_STREAK:
+                continue
+            key = str(streak)
+            if alert_sent(mid, atype, key):
+                continue
+            save_alert(mid, atype, key)
+            alerts.append({"type": "연속하락", "msg": (
+                f"📉 [{lbl} {streak}연속 하락]\n\n"
+                f"{header}\n\n"
+                f"💡 {lbl} 배당이 {streak}번 연속 하락 중"
             )})
 
     return alerts

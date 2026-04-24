@@ -36,6 +36,17 @@ function minsAgo(ts) {
   } catch { return null }
 }
 
+function hoursUntil(startsAt) {
+  if (!startsAt) return null
+  try {
+    const m = startsAt.match(/(\d{2})\/(\d{2}) (\d{2}):(\d{2})/)
+    if (!m) return null
+    const year = new Date().getFullYear()
+    const utcMs = Date.UTC(year, parseInt(m[1]) - 1, parseInt(m[2]), parseInt(m[3]) - 9, parseInt(m[4]))
+    return (utcMs - Date.now()) / 3600000
+  } catch { return null }
+}
+
 function fmtTime(ts) {
   if (!ts) return ''
   try {
@@ -43,7 +54,7 @@ function fmtTime(ts) {
   } catch { return '' }
 }
 
-// ① 마켓·사이드별 샤프 시그널
+// 마켓·사이드별 샤프 시그널 (①멀티확인 ②시간가중 ④연속하락 포함)
 function sharpSignals(game) {
   const op = game.opening || {}
   const alerts = game.recentAlerts || []
@@ -53,13 +64,19 @@ function sharpSignals(game) {
   const hasLineSp  = alerts.some(a => a.type === 'line_sp')
   const hasLineOu  = alerts.some(a => a.type === 'line_ou')
 
+  // ② 시간 가중: 경기 0-4h 이내이면 +1
+  const hours = hoursUntil(game.starts_at)
+  const timeBoost = (hours !== null && hours >= 0 && hours <= 4) ? 1 : 0
+
   const signals = []
 
   function calcScore(drop, hasSteam, hasLine) {
-    if ((hasLine && hasSteam) || drop >= 0.20) return 3
-    if (hasSteam || hasLine || drop >= 0.10) return 2
-    if (drop >= 0.05) return 1
-    return 0
+    let base
+    if ((hasLine && hasSteam) || drop >= 0.20) base = 3
+    else if (hasSteam || hasLine || drop >= 0.10) base = 2
+    else if (drop >= 0.05) base = 1
+    else base = 0
+    return Math.min(3, base + timeBoost)
   }
 
   // ML
@@ -76,8 +93,8 @@ function sharpSignals(game) {
   if (hasLineSp && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts) {
     const delta = game.sp_pts - op.sp_pts
     const label = delta < 0 ? '홈 핸디' : '원정 핸디'
-    const score = hasSteamSp ? 3 : 2
-    signals.push({ label, drop: Math.abs(delta), score })
+    const base = hasSteamSp ? 3 : 2
+    signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
   } else {
     const dropSpHome = (op.sp_home && game.sp_home) ? op.sp_home - game.sp_home : null
     const dropSpAway = (op.sp_away && game.sp_away) ? op.sp_away - game.sp_away : null
@@ -93,8 +110,8 @@ function sharpSignals(game) {
   if (hasLineOu && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts) {
     const delta = game.ou_pts - op.ou_pts
     const label = delta < 0 ? '언더' : '오버'
-    const score = hasSteamOu ? 3 : 2
-    signals.push({ label, drop: Math.abs(delta), score })
+    const base = hasSteamOu ? 3 : 2
+    signals.push({ label, drop: Math.abs(delta), score: Math.min(3, base + timeBoost) })
   } else {
     const dropOver  = (op.ou_over  && game.ou_over)  ? op.ou_over  - game.ou_over  : null
     const dropUnder = (op.ou_under && game.ou_under) ? op.ou_under - game.ou_under : null
@@ -106,7 +123,40 @@ function sharpSignals(game) {
     }
   }
 
-  return signals
+  // ④ 연속 하락 통합
+  const streakMap = {
+    streak_ml_home: '홈 ML', streak_ml_away: '원정 ML',
+    streak_sp_home: '홈 핸디', streak_sp_away: '원정 핸디',
+    streak_ou_over: '오버', streak_ou_under: '언더',
+  }
+  for (const a of alerts) {
+    const lbl = streakMap[a.type]
+    if (!lbl) continue
+    const count = parseInt(a.threshold) || 0
+    let sig = signals.find(s => s.label === lbl)
+    if (!sig) {
+      sig = { label: lbl, drop: 0, score: 0 }
+      signals.push(sig)
+    }
+    sig.score = Math.min(3, sig.score + 1)
+    sig.streak = count
+  }
+
+  // ① 멀티마켓 확인: ML + 핸디 같은 방향이면 각각 +1
+  const mlSig = signals.find(s => s.label.endsWith('ML'))
+  const spSig = signals.find(s => s.label.endsWith('핸디'))
+  if (mlSig && spSig) {
+    const mlHome = mlSig.label.startsWith('홈')
+    const spHome = spSig.label.startsWith('홈')
+    if (mlHome === spHome) {
+      mlSig.score = Math.min(3, mlSig.score + 1)
+      spSig.score = Math.min(3, spSig.score + 1)
+      mlSig.multi = true
+      spSig.multi = true
+    }
+  }
+
+  return signals.filter(s => s.score > 0)
 }
 
 function SharpSignals({ signals }) {
@@ -119,6 +169,8 @@ function SharpSignals({ signals }) {
           <div key={s.label} className="flex items-center gap-0.5 bg-gray-700 rounded-lg px-2 py-1">
             <span className="text-sm font-semibold text-gray-200">{s.label}</span>
             <span className={`text-sm font-bold ${color}`}> {'★'.repeat(s.score)}{'☆'.repeat(3 - s.score)}</span>
+            {s.streak ? <span className="text-xs text-orange-400 ml-1">{s.streak}연속</span> : null}
+            {s.multi ? <span className="text-xs text-purple-400 ml-1">멀티</span> : null}
           </div>
         )
       })}
@@ -161,11 +213,17 @@ function SharpBadge({ alerts, game }) {
           case 'instant_sp': label = '⚡핸디'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'instant_ou': label = '⚡O/U'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'line_sp':
-            if (op.sp_pts == null || op.sp_pts === game.sp_pts) return null
+            if (op.sp_pts == null || game.sp_pts == null || op.sp_pts === game.sp_pts) return null
             label = '🔄핸디'; detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`; break
           case 'line_ou':
-            if (op.ou_pts == null || op.ou_pts === game.ou_pts) return null
+            if (op.ou_pts == null || game.ou_pts == null || op.ou_pts === game.ou_pts) return null
             label = '🔄O/U'; detail = `${op.ou_pts}→${game.ou_pts}`; break
+          case 'streak_ml_home':  label = '📉홈 ML';    detail = threshold ? `${threshold}연속` : ''; break
+          case 'streak_ml_away':  label = '📉원정 ML';  detail = threshold ? `${threshold}연속` : ''; break
+          case 'streak_sp_home':  label = '📉홈 핸디';  detail = threshold ? `${threshold}연속` : ''; break
+          case 'streak_sp_away':  label = '📉원정 핸디'; detail = threshold ? `${threshold}연속` : ''; break
+          case 'streak_ou_over':  label = '📉오버';     detail = threshold ? `${threshold}연속` : ''; break
+          case 'streak_ou_under': label = '📉언더';     detail = threshold ? `${threshold}연속` : ''; break
           default: label = type; detail = threshold || ''
         }
         return (
@@ -267,7 +325,7 @@ function HistoryModal({ game, onClose }) {
         .eq('matchup_id', game.matchup_id)
         .order('id', { ascending: true })
         .limit(500)
-      const rows = res.data || []
+      const rows = (res.data || []).filter(r => r.ml_home != null)
       const changed = rows.filter((r, i) => {
         if (i === 0) return true
         const p = rows[i - 1]
@@ -487,6 +545,8 @@ export default function App() {
       if (!cur) {
         alertsMap[a.matchup_id][a.alert_type] = { type: a.alert_type, threshold: a.threshold }
       } else if (a.alert_type.startsWith('instant_') && parseFloat(a.threshold) > parseFloat(cur.threshold)) {
+        cur.threshold = a.threshold
+      } else if (a.alert_type.startsWith('streak_') && parseInt(a.threshold) > parseInt(cur.threshold)) {
         cur.threshold = a.threshold
       }
     }
