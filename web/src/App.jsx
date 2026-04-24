@@ -18,8 +18,7 @@ const LEAGUE_FLAGS = {
   'Ligue 1': '🇫🇷', 'La Liga': '🇪🇸',
   'K리그1': '🇰🇷', MLS: '🇺🇸',
   UCL: '🏆', Europa: '🟠', Conference: '🟢',
-  NBA: '🇺🇸',
-  NHL: '🇺🇸',
+  NBA: '🇺🇸', NHL: '🇺🇸',
 }
 
 const ALL_LEAGUES = [
@@ -44,6 +43,38 @@ function fmtTime(ts) {
   } catch { return '' }
 }
 
+// ① Sharp Score
+function sharpScore(game) {
+  const op = game.opening || {}
+  const alerts = game.recentAlerts || []
+  const hasLineChange = alerts.some(a => a.type === 'line_sp' || a.type === 'line_ou')
+  const hasSteam = alerts.some(a => a.type.startsWith('instant_'))
+  const drops = [
+    op.ml_home  && game.ml_home  ? Math.abs(game.ml_home  - op.ml_home)  : 0,
+    op.ml_away  && game.ml_away  ? Math.abs(game.ml_away  - op.ml_away)  : 0,
+    op.sp_home  && game.sp_home  ? Math.abs(game.sp_home  - op.sp_home)  : 0,
+    op.sp_away  && game.sp_away  ? Math.abs(game.sp_away  - op.sp_away)  : 0,
+    op.ou_over  && game.ou_over  ? Math.abs(game.ou_over  - op.ou_over)  : 0,
+    op.ou_under && game.ou_under ? Math.abs(game.ou_under - op.ou_under) : 0,
+  ]
+  const maxDrop = Math.max(...drops)
+  if ((hasLineChange && hasSteam) || maxDrop >= 0.20) return 3
+  if (hasSteam || hasLineChange || maxDrop >= 0.10) return 2
+  if (alerts.length > 0 || maxDrop >= 0.05) return 1
+  return 0
+}
+
+function SharpStars({ score }) {
+  if (score === 0) return null
+  const color = score === 3 ? 'text-red-400' : score === 2 ? 'text-yellow-400' : 'text-blue-400'
+  return (
+    <span className={`text-xl font-bold tracking-tight ${color}`}>
+      {'★'.repeat(score)}{'☆'.repeat(3 - score)}
+    </span>
+  )
+}
+
+// highlight: null | 'blue' | 'red'
 function OddsTag({ label, value, openValue, highlight }) {
   const diff = (value != null && openValue != null)
     ? parseFloat((value - openValue).toFixed(3)) : null
@@ -52,12 +83,15 @@ function OddsTag({ label, value, openValue, highlight }) {
   return (
     <div className={`flex-1 flex flex-col items-center py-2 rounded-lg ${bg}`}>
       <span className="text-xs text-gray-300">{label}</span>
-      <span className={`text-base font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
+      <span className={`text-base font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>
+        {value?.toFixed(2) ?? '-'}
+      </span>
+      {/* ② 오프닝 대비 낙폭 — 더 크고 선명하게 */}
       {hasDiff ? (
-        <span className={`text-xs font-semibold ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <span className={`text-sm font-bold ${diff > 0 ? 'text-green-400' : 'text-red-300'}`}>
           {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
         </span>
-      ) : <span className="text-xs opacity-0">-</span>}
+      ) : <span className="text-sm opacity-0">-</span>}
     </div>
   )
 }
@@ -88,6 +122,80 @@ function SharpBadge({ alerts, game }) {
   )
 }
 
+// ③ SVG 차트
+function OddsChart({ snapshots, mktTab, isSoccer }) {
+  const data = [...snapshots].reverse() // 시간순
+  if (data.length < 2) return null
+
+  const W = 300, H = 80, PX = 8, PY = 8
+
+  const series = mktTab === 'ml'
+    ? [
+        { values: data.map(s => s.ml_home),  color: '#60a5fa', label: '홈' },
+        { values: data.map(s => s.ml_away),  color: '#f87171', label: '원정' },
+        ...(isSoccer ? [{ values: data.map(s => s.ml_draw), color: '#9ca3af', label: '무' }] : []),
+      ]
+    : mktTab === 'sp'
+    ? [
+        { values: data.map(s => s.sp_home), color: '#60a5fa', label: '홈' },
+        { values: data.map(s => s.sp_away), color: '#f87171', label: '원정' },
+      ]
+    : [
+        { values: data.map(s => s.ou_over),  color: '#34d399', label: '오버' },
+        { values: data.map(s => s.ou_under), color: '#fbbf24', label: '언더' },
+      ]
+
+  const allVals = series.flatMap(s => s.values).filter(v => v != null)
+  if (allVals.length < 2) return null
+  const lo = Math.min(...allVals), hi = Math.max(...allVals)
+  const range = hi - lo || 0.1
+
+  function path(values) {
+    const pts = values.map((v, i) => {
+      if (v == null) return null
+      const x = PX + (i / (values.length - 1)) * (W - PX * 2)
+      const y = PY + (1 - (v - lo) / range) * (H - PY * 2)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    }).filter(Boolean)
+    return pts.length < 2 ? null : `M ${pts.join(' L ')}`
+  }
+
+  // Y축 레이블 (최소/최대)
+  const yMin = lo.toFixed(2), yMax = hi.toFixed(2)
+
+  return (
+    <div className="mb-3 bg-gray-800 rounded-lg p-2">
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }}>
+          {/* 그리드 */}
+          {[0.25, 0.5, 0.75].map(t => (
+            <line key={t} x1={PX} x2={W - PX}
+              y1={PY + t * (H - PY * 2)} y2={PY + t * (H - PY * 2)}
+              stroke="#374151" strokeWidth="1" />
+          ))}
+          {/* 라인 */}
+          {series.map((s, i) => {
+            const d = path(s.values)
+            return d ? <path key={i} d={d} fill="none" stroke={s.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /> : null
+          })}
+        </svg>
+        {/* Y축 레이블 */}
+        <div className="absolute top-1 right-1 text-xs text-gray-500">{yMax}</div>
+        <div className="absolute bottom-1 right-1 text-xs text-gray-500">{yMin}</div>
+      </div>
+      {/* 범례 */}
+      <div className="flex gap-3 justify-center mt-1">
+        {series.map((s, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <div className="w-4 h-0.5 rounded" style={{ backgroundColor: s.color }} />
+            <span className="text-xs text-gray-400">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // 배당 흐름 모달
 function HistoryModal({ game, onClose }) {
   const [snapshots, setSnapshots] = useState([])
@@ -103,7 +211,6 @@ function HistoryModal({ game, onClose }) {
         .eq('matchup_id', game.matchup_id)
         .order('id', { ascending: true })
         .limit(500)
-      // 변동 있는 행만 필터
       const rows = res.data || []
       const changed = rows.filter((r, i) => {
         if (i === 0) return true
@@ -111,7 +218,7 @@ function HistoryModal({ game, onClose }) {
         return ['ml_home','ml_away','ml_draw','sp_pts','sp_home','sp_away','ou_pts','ou_over','ou_under']
           .some(k => r[k] !== p[k])
       })
-      setSnapshots(changed.reverse()) // 최신순
+      setSnapshots(changed.reverse())
       setLoading(false)
     }
     load()
@@ -124,8 +231,8 @@ function HistoryModal({ game, onClose }) {
     const d = prev != null ? parseFloat((cur - prev).toFixed(3)) : null
     const show = d !== null && Math.abs(d) >= 0.005
     return (
-      <span className={show ? (d > 0 ? 'text-green-400' : 'text-red-400') : 'text-gray-100'}>
-        {cur.toFixed(2)}{show ? (d > 0 ? ` ▲` : ` ▼`) : ''}
+      <span className={show ? (d > 0 ? 'text-green-400 font-bold' : 'text-red-400 font-bold') : 'text-gray-100'}>
+        {cur.toFixed(2)}{show ? (d > 0 ? ' ▲' : ' ▼') : ''}
       </span>
     )
   }
@@ -138,43 +245,41 @@ function HistoryModal({ game, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" onClick={onClose}>
-      {/* 배경 딤 */}
       <div className="flex-1 bg-black/60" />
-      {/* 패널 */}
       <div
-        className="bg-gray-900 rounded-t-2xl px-4 pt-4 pb-8 max-h-[80vh] flex flex-col"
+        className="bg-gray-900 rounded-t-2xl px-4 pt-4 pb-8 max-h-[82vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        {/* 핸들 */}
         <div className="w-10 h-1 bg-gray-600 rounded-full mx-auto mb-4" />
 
-        {/* 경기 정보 */}
         <div className="mb-3">
           <div className="text-sm text-gray-400 mb-1">{flag} {game.league} · {game.starts_at?.replace(' KST','')}</div>
-          <div className="text-white font-bold text-lg">{game.home} <span className="text-gray-500 font-normal text-base">vs</span> {game.away}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-white font-bold text-lg">{game.home} <span className="text-gray-500 font-normal text-base">vs</span> {game.away}</div>
+            <SharpStars score={sharpScore(game)} />
+          </div>
         </div>
 
-        {/* 마켓 탭 */}
         <div className="flex gap-2 mb-3">
           {mktTabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setMktTab(t.key)}
+            <button key={t.key} onClick={() => setMktTab(t.key)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors
-                ${mktTab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-            >
+                ${mktTab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
               {t.label}
             </button>
           ))}
         </div>
 
-        {/* 테이블 */}
-        <div className="overflow-y-auto flex-1">
-          {loading ? (
-            <div className="text-center text-gray-500 py-10">불러오는 중...</div>
-          ) : snapshots.length === 0 ? (
-            <div className="text-center text-gray-500 py-10">데이터 없음</div>
-          ) : (
+        {loading ? (
+          <div className="text-center text-gray-500 py-10">불러오는 중...</div>
+        ) : snapshots.length === 0 ? (
+          <div className="text-center text-gray-500 py-10">데이터 없음</div>
+        ) : (
+          <div className="overflow-y-auto flex-1">
+            {/* ③ 차트 */}
+            <OddsChart snapshots={snapshots} mktTab={mktTab} isSoccer={isSoccer} />
+
+            {/* 테이블 */}
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
@@ -198,7 +303,7 @@ function HistoryModal({ game, onClose }) {
               </thead>
               <tbody>
                 {snapshots.map((s, i) => {
-                  const prev = snapshots[i + 1] // 역순이므로 다음이 이전
+                  const prev = snapshots[i + 1]
                   return (
                     <tr key={i} className="border-b border-gray-800">
                       <td className="py-2 pr-2 text-gray-400 whitespace-nowrap">{fmtTime(s.ts)}</td>
@@ -222,8 +327,8 @@ function HistoryModal({ game, onClose }) {
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -233,11 +338,11 @@ function GameCard({ game, onClick }) {
   const flag     = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
   const op       = game.opening || {}
+  const score    = sharpScore(game)
 
   function dropHighlight(curA, openA, curB, openB) {
     if (curA == null || openA == null || curB == null || openB == null) return [null, null]
-    const dA = curA - openA
-    const dB = curB - openB
+    const dA = curA - openA, dB = curB - openB
     if (dA === dB) return [null, null]
     const favA = dA < dB
     const drop = favA ? Math.abs(dA) : Math.abs(dB)
@@ -245,39 +350,50 @@ function GameCard({ game, onClick }) {
     return favA ? [color, null] : [null, color]
   }
 
-  const [mlHomeHL, mlAwayHL]   = dropHighlight(game.ml_home, op.ml_home, game.ml_away, op.ml_away)
-  const [spHomeHL, spAwayHL]   = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
-  const [ouOverHL, ouUnderHL]  = dropHighlight(game.ou_over, op.ou_over, game.ou_under, op.ou_under)
+  const [mlHomeHL, mlAwayHL]  = dropHighlight(game.ml_home, op.ml_home, game.ml_away, op.ml_away)
+  const [spHomeHL, spAwayHL]  = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
+  const [ouOverHL, ouUnderHL] = dropHighlight(game.ou_over, op.ou_over, game.ou_under, op.ou_under)
 
   return (
-    <div
-      className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700 cursor-pointer active:opacity-80"
-      onClick={onClick}
-    >
-      <div className="mb-1">
+    <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700 cursor-pointer active:opacity-80" onClick={onClick}>
+      {/* 리그 + 샤프점수 */}
+      <div className="flex items-center justify-between mb-1">
         <span className="text-base font-bold text-gray-200">{flag} {game.league}</span>
+        <SharpStars score={score} />
       </div>
+
+      {/* 팀명 */}
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
         <span className="text-white font-bold text-xl">{game.home}</span>
         <span className="text-gray-500 text-lg font-normal">vs</span>
         <span className="text-white font-bold text-xl">{game.away}</span>
       </div>
+
+      {/* 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
+
+      {/* 경기시간 + 기준 */}
       <div className="mb-3 flex items-center justify-between">
         <span className="text-base font-semibold text-gray-300">⏰ {game.starts_at?.replace(' KST','')}</span>
         {minsAgo(game.ts) && <span className="text-xs text-gray-500">{minsAgo(game.ts)} 기준</span>}
       </div>
+
+      {/* 승패 */}
       <div className="flex gap-1.5 mb-1.5">
         <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight={mlHomeHL} />
         {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw} openValue={op.ml_draw} />}
         <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} highlight={mlAwayHL} />
       </div>
+
+      {/* 핸디 */}
       {game.sp_pts != null && (
         <div className="flex gap-1.5 mb-1.5">
           <OddsTag label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`} value={game.sp_home} openValue={op.sp_home} highlight={spHomeHL} />
           <OddsTag label={`원정 ${(-game.sp_pts) >= 0 ? '+' : ''}${-game.sp_pts}`} value={game.sp_away} openValue={op.sp_away} highlight={spAwayHL} />
         </div>
       )}
+
+      {/* O/U */}
       {game.ou_pts != null && (
         <div className="flex gap-1.5">
           <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} highlight={ouOverHL} />
@@ -296,9 +412,7 @@ export default function App() {
   const [lastUpdate, setLastUpdate] = useState(null)
   const [selected, setSelected]     = useState(null)
 
-  useEffect(() => {
-    fetchGames()
-  }, [])
+  useEffect(() => { fetchGames() }, [])
 
   async function fetchGames() {
     setLoading(true)
@@ -350,11 +464,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* 헤더 */}
       <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 px-4 pt-4 pb-3">
         <div className="flex justify-between items-center mb-3">
           <h1 className="text-2xl font-bold">⚡ 샤프시그널</h1>
-          <span className="text-sm text-gray-400">{lastUpdate && `갱신 ${lastUpdate}`}</span>
+          <button onClick={fetchGames} className="text-sm text-gray-400 active:text-white">
+            {lastUpdate ? `갱신 ${lastUpdate}` : '새로고침'}
+          </button>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button onClick={() => setTab('all')} className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors ${tab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>전체</button>
@@ -377,7 +492,6 @@ export default function App() {
         )}
       </div>
 
-      {/* 경기 목록 */}
       <div className="px-4 py-4">
         {loading ? (
           <div className="text-center text-gray-500 py-20">불러오는 중...</div>
@@ -388,7 +502,6 @@ export default function App() {
         )}
       </div>
 
-      {/* 배당 흐름 모달 */}
       {selected && <HistoryModal game={selected} onClose={() => setSelected(null)} />}
     </div>
   )
