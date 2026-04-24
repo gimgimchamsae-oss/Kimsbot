@@ -36,14 +36,14 @@ function OddsTag({ label, value, openValue, highlight }) {
   const bg = highlight === 'red' ? 'bg-red-600' : highlight === 'blue' ? 'bg-blue-600' : 'bg-gray-700'
 
   return (
-    <div className={`flex-1 flex flex-col items-center py-3 rounded-lg ${bg}`}>
-      <span className="text-xs text-gray-300 mb-1">{label}</span>
-      <span className={`text-lg font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
+    <div className={`flex-1 flex flex-col items-center py-2 rounded-lg ${bg}`}>
+      <span className="text-xs text-gray-300">{label}</span>
+      <span className={`text-base font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>{value?.toFixed(2) ?? '-'}</span>
       {hasDiff ? (
-        <span className={`text-xs font-semibold mt-1 ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
+        <span className={`text-xs font-semibold ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
           {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
         </span>
-      ) : <span className="text-xs mt-1 opacity-0">-</span>}
+      ) : <span className="text-xs opacity-0">-</span>}
     </div>
   )
 }
@@ -83,7 +83,7 @@ function SharpBadge({ alerts, game }) {
             detail = threshold || ''
         }
         return (
-          <span key={type} className="text-xs px-2 py-0.5 rounded bg-yellow-500 text-gray-900 font-bold">
+          <span key={type} className="text-sm px-3 py-1 rounded-lg bg-yellow-500 text-gray-900 font-bold">
             {label}{detail ? ` ${detail}` : ''}
           </span>
         )
@@ -116,7 +116,7 @@ function GameCard({ game }) {
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
       {/* 헤더 */}
       <div className="flex justify-between items-center mb-2">
-        <span className="text-xs text-gray-400">{flag} {game.league}</span>
+        <span className="text-sm font-semibold text-gray-300">{flag} {game.league}</span>
         <span className="text-xs text-gray-400">⏰ {game.starts_at?.replace(' KST','')}</span>
       </div>
 
@@ -124,10 +124,10 @@ function GameCard({ game }) {
       <SharpBadge alerts={game.recentAlerts} game={game} />
 
       {/* 팀명 — 한 줄 */}
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-1.5">
-        <span className="text-white font-bold text-base">{game.home}</span>
-        <span className="text-gray-500 text-sm font-normal">vs</span>
-        <span className="text-white font-bold text-base">{game.away}</span>
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-white font-bold text-lg">{game.home}</span>
+        <span className="text-gray-500 text-base font-normal">vs</span>
+        <span className="text-white font-bold text-lg">{game.away}</span>
       </div>
 
       {/* 승패 배당 */}
