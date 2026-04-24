@@ -577,7 +577,10 @@ export default function App() {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 px-4 pt-4 pb-3">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-2xl font-bold">⚡ 샤프시그널</h1>
+          <div>
+            <h1 className="text-2xl font-bold">⚡ 샤프시그널</h1>
+            <div className="text-xs text-gray-600">build 2025-04-25 v7</div>
+          </div>
           <button onClick={fetchGames} className="text-sm text-gray-400 active:text-white">
             {lastUpdate ? `갱신 ${lastUpdate}` : '새로고침'}
           </button>
