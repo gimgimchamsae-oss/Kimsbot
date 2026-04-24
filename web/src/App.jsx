@@ -29,6 +29,15 @@ const ALL_LEAGUES = [
   'NHL',
 ]
 
+function minsAgo(ts) {
+  if (!ts) return null
+  try {
+    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000)
+    if (diff < 1) return '방금'
+    return `${diff}분 전`
+  } catch { return null }
+}
+
 // highlight: null | 'blue' | 'red'
 function OddsTag({ label, value, openValue, highlight }) {
   const diff = (value != null && openValue != null)
@@ -132,9 +141,12 @@ function GameCard({ game }) {
       {/* 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
 
-      {/* 경기시간 */}
-      <div className="mb-3">
+      {/* 경기시간 + 데이터 기준 */}
+      <div className="mb-3 flex items-center justify-between">
         <span className="text-base font-semibold text-gray-300">⏰ {game.starts_at?.replace(' KST','')}</span>
+        {minsAgo(game.ts) && (
+          <span className="text-xs text-gray-500">{minsAgo(game.ts)} 기준</span>
+        )}
       </div>
 
       {/* 승패 배당 */}
