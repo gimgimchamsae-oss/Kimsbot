@@ -1,15 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-const SPORTS = [
-  { key: 'all',        label: '전체' },
-  { key: 'baseball',   label: '⚾ 야구' },
-  { key: 'soccer',     label: '⚽ 축구' },
-  { key: 'basketball', label: '🏀 농구' },
-  { key: 'hockey',     label: '🏒 하키' },
-  { key: 'past',       label: '🕐 지난경기' },
-]
-
 function isInPast(startsAt) {
   if (!startsAt) return false
   try {
@@ -31,12 +22,12 @@ const LEAGUE_FLAGS = {
   NHL: '🇺🇸',
 }
 
-const LEAGUES_BY_SPORT = {
-  baseball:   ['MLB', 'KBO', 'NPB'],
-  soccer:     ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference'],
-  basketball: ['NBA'],
-  hockey:     ['NHL'],
-}
+const ALL_LEAGUES = [
+  'MLB', 'KBO', 'NPB',
+  'EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'MLS', 'UCL', 'Europa', 'Conference',
+  'NBA',
+  'NHL',
+]
 
 // highlight: null | 'blue' | 'red'
 function OddsTag({ label, value, openValue, highlight }) {
@@ -109,13 +100,12 @@ function GameCard({ game }) {
   const isSoccer = game.sport === 'soccer'
   const op       = game.opening || {}
 
-  // 오프닝 대비 낙폭이 큰 쪽 → 파란(0.10미만) / 빨강(0.10이상)
   function dropHighlight(curA, openA, curB, openB) {
     if (curA == null || openA == null || curB == null || openB == null) return [null, null]
-    const dA = curA - openA  // 음수 = 하락
+    const dA = curA - openA
     const dB = curB - openB
     if (dA === dB) return [null, null]
-    const favA = dA < dB  // A가 더 많이 떨어짐
+    const favA = dA < dB
     const drop = favA ? Math.abs(dA) : Math.abs(dB)
     const color = drop >= 0.10 ? 'red' : 'blue'
     return favA ? [color, null] : [null, color]
@@ -127,22 +117,22 @@ function GameCard({ game }) {
 
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700">
-      {/* 1. 리그 */}
+      {/* 리그 */}
       <div className="mb-1">
         <span className="text-base font-bold text-gray-200">{flag} {game.league}</span>
       </div>
 
-      {/* 2. 팀명 */}
+      {/* 팀명 */}
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2">
         <span className="text-white font-bold text-xl">{game.home}</span>
         <span className="text-gray-500 text-lg font-normal">vs</span>
         <span className="text-white font-bold text-xl">{game.away}</span>
       </div>
 
-      {/* 3. 샤프 시그널 */}
+      {/* 샤프 시그널 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
 
-      {/* 4. 경기시간 */}
+      {/* 경기시간 */}
       <div className="mb-3">
         <span className="text-base font-semibold text-gray-300">⏰ {game.starts_at?.replace(' KST','')}</span>
       </div>
@@ -185,8 +175,7 @@ function GameCard({ game }) {
 
 export default function App() {
   const [games, setGames]           = useState([])
-  const [sport, setSport]           = useState('all')
-  const [league, setLeague]         = useState('all')
+  const [tab, setTab]               = useState('all')
   const [loading, setLoading]       = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
 
@@ -209,10 +198,8 @@ export default function App() {
       (openingsRes.data || []).map(o => [o.matchup_id, o])
     )
 
-    // 현재 표시 중인 경기 ID 집합 (오래된 알림 제외용)
     const currentIds = new Set((linesRes.data || []).map(g => g.matchup_id))
 
-    // 게임당 alert_type별로 최신 1개씩 (instant는 최대 threshold 유지)
     const alertsMap = {}
     for (const a of (alertsRes.data || [])) {
       if (!currentIds.has(a.matchup_id)) continue
@@ -221,7 +208,6 @@ export default function App() {
       if (!cur) {
         alertsMap[a.matchup_id][a.alert_type] = { type: a.alert_type, threshold: a.threshold }
       } else if (a.alert_type.startsWith('instant_')) {
-        // 스팀무브는 최대 변동폭으로 업데이트
         if (parseFloat(a.threshold) > parseFloat(cur.threshold)) {
           cur.threshold = a.threshold
         }
@@ -239,28 +225,23 @@ export default function App() {
     setLoading(false)
   }
 
-  const leagues = sport === 'all'
-    ? Object.values(LEAGUES_BY_SPORT).flat()
-    : (LEAGUES_BY_SPORT[sport] || [])
-
-  const isPastView = sport === 'past'
+  const isPastView = tab === 'past'
 
   const filtered = games.filter(g => {
     const past = isInPast(g.starts_at)
     if (isPastView) return past
     if (past) return false
-    if (sport !== 'all' && g.sport !== sport) return false
-    if (league !== 'all' && g.league !== league) return false
+    if (tab !== 'all' && g.league !== tab) return false
     return true
   })
 
-  // 지난경기: 리그별 그룹 + 최신순 / 예정경기: 시간순 평면
   const sorted = [...filtered].sort((a, b) =>
     isPastView
       ? (b.starts_at > a.starts_at ? 1 : -1)
       : (a.starts_at > b.starts_at ? 1 : -1)
   )
 
+  // 지난경기: 리그별 그룹
   const grouped = isPastView
     ? sorted.reduce((acc, g) => {
         if (!acc[g.league]) acc[g.league] = []
@@ -268,6 +249,11 @@ export default function App() {
         return acc
       }, {})
     : null
+
+  // 탭 목록: 전체 + 데이터 있는 리그만 + 지난경기
+  const activeLegues = ALL_LEAGUES.filter(l =>
+    games.some(g => g.league === l && !isInPast(g.starts_at))
+  )
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -278,39 +264,32 @@ export default function App() {
           <span className="text-sm text-gray-400">{lastUpdate && `갱신 ${lastUpdate}`}</span>
         </div>
 
-        {/* 스포츠 탭 */}
-        <div className="flex gap-2 mb-3">
-          {SPORTS.map(s => (
-            <button
-              key={s.key}
-              onClick={() => { setSport(s.key); setLeague('all') }}
-              className={`px-4 py-2 rounded-full text-base font-semibold transition-colors
-                ${sport === s.key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {/* 리그 필터 */}
+        {/* 탭: 전체 + 리그별 + 지난경기 */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
-            onClick={() => setLeague('all')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
-              ${league === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+            onClick={() => setTab('all')}
+            className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors
+              ${tab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
           >
             전체
           </button>
-          {leagues.map(l => (
+          {activeLegues.map(l => (
             <button
               key={l}
-              onClick={() => setLeague(l)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
-                ${league === l ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+              onClick={() => setTab(l)}
+              className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors
+                ${tab === l ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
             >
               {LEAGUE_FLAGS[l]} {l}
             </button>
           ))}
+          <button
+            onClick={() => setTab('past')}
+            className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors
+              ${tab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+          >
+            🕐 지난경기
+          </button>
         </div>
       </div>
 
@@ -320,17 +299,17 @@ export default function App() {
           <div className="text-center text-gray-500 py-20">불러오는 중...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center text-gray-500 py-20">경기 없음</div>
+        ) : isPastView ? (
+          Object.entries(grouped).map(([leagueName, leagueGames]) => (
+            <div key={leagueName} className="mb-6">
+              <div className="text-sm font-semibold text-gray-400 mb-2 px-1">
+                {LEAGUE_FLAGS[leagueName]} {leagueName} ({leagueGames.length})
+              </div>
+              {leagueGames.map(g => <GameCard key={g.matchup_id} game={g} />)}
+            </div>
+          ))
         ) : (
-          isPastView
-            ? Object.entries(grouped).map(([leagueName, leagueGames]) => (
-                <div key={leagueName} className="mb-6">
-                  <div className="text-sm font-semibold text-gray-400 mb-2 px-1">
-                    {LEAGUE_FLAGS[leagueName]} {leagueName} ({leagueGames.length})
-                  </div>
-                  {leagueGames.map(g => <GameCard key={g.matchup_id} game={g} />)}
-                </div>
-              ))
-            : sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
+          sorted.map(g => <GameCard key={g.matchup_id} game={g} />)
         )}
       </div>
     </div>
