@@ -242,19 +242,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* 헤더 */}
-      <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 px-4 pt-4 pb-2">
+      <div className="sticky top-0 z-10 bg-gray-900 border-b border-gray-700 px-4 pt-4 pb-3">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-lg font-bold">📊 Pinnacle RLM</h1>
-          <span className="text-xs text-gray-500">{lastUpdate && `갱신 ${lastUpdate}`}</span>
+          <h1 className="text-2xl font-bold">⚡ 샤프시그널</h1>
+          <span className="text-sm text-gray-400">{lastUpdate && `갱신 ${lastUpdate}`}</span>
         </div>
 
         {/* 스포츠 탭 */}
-        <div className="flex gap-2 mb-2">
+        <div className="flex gap-2 mb-3">
           {SPORTS.map(s => (
             <button
               key={s.key}
               onClick={() => { setSport(s.key); setLeague('all') }}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors
+              className={`px-4 py-2 rounded-full text-base font-semibold transition-colors
                 ${sport === s.key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
             >
               {s.label}
@@ -266,8 +266,8 @@ export default function App() {
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setLeague('all')}
-            className={`px-3 py-1 rounded-full text-xs whitespace-nowrap
-              ${league === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
+              ${league === 'all' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
           >
             전체
           </button>
@@ -275,8 +275,8 @@ export default function App() {
             <button
               key={l}
               onClick={() => setLeague(l)}
-              className={`px-3 py-1 rounded-full text-xs whitespace-nowrap
-                ${league === l ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-400'}`}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
+                ${league === l ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
             >
               {LEAGUE_FLAGS[l]} {l}
             </button>
