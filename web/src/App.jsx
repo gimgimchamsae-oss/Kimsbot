@@ -213,10 +213,10 @@ function SharpBadge({ alerts, game }) {
           case 'instant_sp': label = '⚡핸디'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'instant_ou': label = '⚡O/U'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
           case 'line_sp':
-            if (op.sp_pts == null || op.sp_pts === game.sp_pts) return null
+            if (op.sp_pts == null || game.sp_pts == null || op.sp_pts === game.sp_pts) return null
             label = '🔄핸디'; detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`; break
           case 'line_ou':
-            if (op.ou_pts == null || op.ou_pts === game.ou_pts) return null
+            if (op.ou_pts == null || game.ou_pts == null || op.ou_pts === game.ou_pts) return null
             label = '🔄O/U'; detail = `${op.ou_pts}→${game.ou_pts}`; break
           case 'streak_ml_home':  label = '📉홈 ML';    detail = threshold ? `${threshold}연속` : ''; break
           case 'streak_ml_away':  label = '📉원정 ML';  detail = threshold ? `${threshold}연속` : ''; break
@@ -325,7 +325,7 @@ function HistoryModal({ game, onClose }) {
         .eq('matchup_id', game.matchup_id)
         .order('id', { ascending: true })
         .limit(500)
-      const rows = res.data || []
+      const rows = (res.data || []).filter(r => r.ml_home != null)
       const changed = rows.filter((r, i) => {
         if (i === 0) return true
         const p = rows[i - 1]
