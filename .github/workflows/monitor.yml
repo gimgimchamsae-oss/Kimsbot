@@ -5,12 +5,17 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -26,14 +31,14 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
       - name: Discover basketball/hockey leagues (KBL ID 확인용)
-        run: python pinnacle_scraper.py --discover | tee /tmp/leagues.txt && cp /tmp/leagues.txt leagues_discovered.txt
-      - name: Save discovered leagues
+        run: python pinnacle_scraper.py --discover > leagues_discovered.txt 2>&1 || true
+      - name: Commit discovered leagues
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add -f leagues_discovered.txt
-          git diff --cached --quiet || git commit -m "chore: update discovered leagues list"
-          git push || true
+          git diff --cached --quiet || git commit -m "chore: update discovered leagues list [skip ci]"
+          git push
       - run: python monitor.py
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
