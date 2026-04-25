@@ -16,7 +16,7 @@ def health():
     return "OK", 200
 
 
-@app.route("/run")
+@app.route("/run", methods=["GET", "POST"])
 def trigger():
     try:
         # stdout 캡처 방지 — 출력은 Render 로그로만
