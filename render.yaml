@@ -1,11 +1,10 @@
 services:
-  - type: cron
+  - type: web
     name: pinnacle-monitor
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
-    schedule: "*/5 * * * *"
-    startCommand: python monitor.py
+    buildCommand: pip install -r requirements.txt flask
+    startCommand: python server.py
     envVars:
       - key: TELEGRAM_TOKEN
         sync: false
