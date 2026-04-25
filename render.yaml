@@ -3,7 +3,7 @@ services:
     name: pinnacle-monitor
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt flask
+    buildCommand: pip install -r requirements.txt
     startCommand: python server.py
     envVars:
       - key: TELEGRAM_TOKEN

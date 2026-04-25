@@ -6,8 +6,8 @@ Flask로 HTTP 포트 유지 + 백그라운드 스레드에서 5분마다 monitor
 import os
 import time
 import threading
+
 from flask import Flask
-from monitor import run
 
 app = Flask(__name__)
 
@@ -20,9 +20,10 @@ def health():
 def _loop():
     while True:
         try:
+            from monitor import run
             run()
         except Exception as e:
-            print(f"[루프 오류] {e}")
+            print(f"[루프 오류] {e}", flush=True)
         time.sleep(300)  # 5분
 
 
