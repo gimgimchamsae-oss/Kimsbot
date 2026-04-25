@@ -81,6 +81,9 @@ def fetch_games() -> list[dict]:
             away = next((p["name"] for p in mu["participants"] if p["alignment"] == "away"), "")
             if not home or not away:
                 continue
+            # "Home Teams (6 Games)" 같은 묶음 경기 제외
+            if "Games)" in home or "Games)" in away:
+                continue
 
             raw = mu.get("startTime") or (mu.get("periods") or [{}])[0].get("cutoffAt", "")
             try:
