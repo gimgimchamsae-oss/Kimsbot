@@ -18,12 +18,14 @@ def health():
 
 
 def _loop():
+    print("[서버] 모니터 루프 시작", flush=True)
     while True:
         try:
             from monitor import run
             run()
         except Exception as e:
             print(f"[루프 오류] {e}", flush=True)
+        print("[서버] 5분 대기 중...", flush=True)
         time.sleep(300)  # 5분
 
 
