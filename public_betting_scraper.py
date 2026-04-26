@@ -72,8 +72,8 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
     while i < len(data_rows):
         text = (await data_rows[i].inner_text()).strip()
 
-        # 날짜 행 (UTC 포함)
-        if "UTC" in text:
+        # 날짜 행 (UTC / GMT 포함)
+        if "UTC" in text or "GMT" in text:
             if i + 2 < len(data_rows):
                 away, away_cells = await get_team_and_cells(data_rows[i + 1])
                 home, home_cells = await get_team_and_cells(data_rows[i + 2])
