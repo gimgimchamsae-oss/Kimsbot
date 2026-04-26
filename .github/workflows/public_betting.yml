@@ -42,19 +42,20 @@ jobs:
                   browser = await pw.chromium.launch(headless=True, args=["--no-sandbox","--disable-dev-shm-usage"])
                   page = await browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
                   await page.goto("https://www.sportsbettingdime.com/mlb/public-betting-trends/", wait_until="domcontentloaded", timeout=60000)
-                  try:
-                      await page.wait_for_selector("table", timeout=20000)
-                  except:
-                      pass
-                  # 두 번째 테이블의 모든 행 클래스 확인
+                  # JS 렌더링 대기 (게임 데이터 로딩까지)
+                  await page.wait_for_timeout(8000)
+                  # 전체 테이블 행 수 확인
+                  all_rows = await page.query_selector_all("table tr")
+                  print(f"전체 tr 수: {len(all_rows)}")
                   tables = await page.query_selector_all("table")
-                  if len(tables) >= 2:
-                      rows = await tables[1].query_selector_all("tr")
-                      print(f"두번째 테이블 행 수: {len(rows)}")
-                      for i, row in enumerate(rows[:15]):
+                  print(f"테이블 수: {len(tables)}")
+                  for t_idx, table in enumerate(tables):
+                      rows = await table.query_selector_all("tr")
+                      print(f"\n=== 테이블[{t_idx}] 행 수: {len(rows)} ===")
+                      for i, row in enumerate(rows[:8]):
                           cls = await row.get_attribute("class") or "(no class)"
-                          text = (await row.inner_text()).strip()[:150]
-                          print(f"[{i}] {cls} | {text}")
+                          text = (await row.inner_text()).strip()[:120]
+                          print(f"  [{i}] {cls} | {text}")
                   await browser.close()
 
           asyncio.run(main())
