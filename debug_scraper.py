@@ -22,25 +22,24 @@ async def main():
             pass
         await page.wait_for_timeout(3000)
 
-        # 테이블 HTML 출력
         tables = await page.query_selector_all("table")
         print(f"테이블 수: {len(tables)}")
 
-        if tables:
-            html = await tables[0].inner_html()
-            print("=== 첫 번째 테이블 (처음 3000자) ===")
-            print(html[:3000])
+        # 두 번째 테이블 구조 확인
+        if len(tables) >= 2:
+            html = await tables[1].inner_html()
+            print("=== 두 번째 테이블 HTML (처음 4000자) ===")
+            print(html[:4000])
 
-        # tr 클래스 확인
-        rows = await page.query_selector_all("table tr")
-        print(f"\n=== TR 행 수: {len(rows)} ===")
-        for i, row in enumerate(rows[:10]):
-            cls = await row.get_attribute("class") or ""
-            cells = await row.query_selector_all("td")
-            texts = []
-            for c in cells[:3]:
-                texts.append((await c.inner_text()).strip()[:30])
-            print(f"row[{i}] class='{cls}' | {texts}")
+        # bg-base-100 행 상세 확인
+        rows = await page.query_selector_all("tr.bg-base-100")
+        print(f"\n=== bg-base-100 행 수: {len(rows)} ===")
+        for i, row in enumerate(rows[:6]):
+            hidden = await row.get_attribute("class") or ""
+            text = (await row.inner_text()).strip()
+            print(f"row[{i}] class='{hidden}'")
+            print(f"  text: {text[:200]}")
+            print()
 
         await browser.close()
 
