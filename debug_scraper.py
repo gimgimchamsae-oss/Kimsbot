@@ -8,8 +8,18 @@ async def main():
         page = await browser.new_page(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         )
+        # 봇 감지 우회
+        await page.set_extra_http_headers({
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
         await page.goto("https://www.sportsbettingdime.com/mlb/public-betting-trends/",
-                        wait_until="networkidle", timeout=45000)
+                        wait_until="domcontentloaded", timeout=45000)
+        # 테이블 또는 5초 대기
+        try:
+            await page.wait_for_selector("table", timeout=15000)
+        except Exception:
+            pass
         await page.wait_for_timeout(3000)
 
         # 테이블 HTML 출력
