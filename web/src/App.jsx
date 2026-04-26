@@ -485,12 +485,12 @@ function PctBar({ label, pct, handle }) {
   if (pct == null) return null
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-gray-400 w-10 shrink-0">{label}</span>
-      <div className="flex-1 bg-gray-700 rounded-full h-2">
-        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
+      <span className="text-gray-400 w-16 shrink-0 whitespace-nowrap">{label}</span>
+      <div className="flex-1 bg-gray-700 rounded-full h-1.5 min-w-0">
+        <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-gray-300 w-8 text-right">{pct}%</span>
-      {handle != null && <span className="text-gray-500 w-8 text-right">${handle}%</span>}
+      <span className="text-gray-300 w-8 text-right shrink-0">{pct}%</span>
+      {handle != null && <span className="text-gray-500 w-9 text-right shrink-0">{handle}%</span>}
     </div>
   )
 }
