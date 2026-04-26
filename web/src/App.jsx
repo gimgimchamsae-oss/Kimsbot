@@ -1,6 +1,45 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
+// 팀 풀네임 → 약자 매핑 (MLB + NBA + NHL)
+const TEAM_ABBREV = {
+  // MLB
+  'Arizona Diamondbacks':'AZ','Atlanta Braves':'ATL','Baltimore Orioles':'BAL',
+  'Boston Red Sox':'BOS','Chicago Cubs':'CHC','Chicago White Sox':'CWS',
+  'Cincinnati Reds':'CIN','Cleveland Guardians':'CLE','Colorado Rockies':'COL',
+  'Detroit Tigers':'DET','Houston Astros':'HOU','Kansas City Royals':'KC',
+  'Los Angeles Angels':'LAA','Los Angeles Dodgers':'LAD','Miami Marlins':'MIA',
+  'Milwaukee Brewers':'MIL','Minnesota Twins':'MIN','New York Mets':'NYM',
+  'New York Yankees':'NYY','Athletics':'ATH','Oakland Athletics':'ATH',
+  'Philadelphia Phillies':'PHI','Pittsburgh Pirates':'PIT','San Diego Padres':'SD',
+  'San Francisco Giants':'SF','Seattle Mariners':'SEA','St. Louis Cardinals':'STL',
+  'Tampa Bay Rays':'TB','Texas Rangers':'TEX','Toronto Blue Jays':'TOR',
+  'Washington Nationals':'WSH',
+  // NBA
+  'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN',
+  'Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE',
+  'Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET',
+  'Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND',
+  'Los Angeles Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM',
+  'Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN',
+  'New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC',
+  'Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX',
+  'Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS',
+  'Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WSH',
+  // NHL
+  'Anaheim Ducks':'ANA','Arizona Coyotes':'ARI','Boston Bruins':'BOS',
+  'Buffalo Sabres':'BUF','Calgary Flames':'CGY','Carolina Hurricanes':'CAR',
+  'Chicago Blackhawks':'CHI','Colorado Avalanche':'COL','Columbus Blue Jackets':'CBJ',
+  'Dallas Stars':'DAL','Detroit Red Wings':'DET','Edmonton Oilers':'EDM',
+  'Florida Panthers':'FLA','Los Angeles Kings':'LAK','Minnesota Wild':'MIN',
+  'Montreal Canadiens':'MTL','Nashville Predators':'NSH','New Jersey Devils':'NJD',
+  'New York Islanders':'NYI','New York Rangers':'NYR','Ottawa Senators':'OTT',
+  'Philadelphia Flyers':'PHI','Pittsburgh Penguins':'PIT','San Jose Sharks':'SJS',
+  'Seattle Kraken':'SEA','St. Louis Blues':'STL','Tampa Bay Lightning':'TBL',
+  'Toronto Maple Leafs':'TOR','Utah Hockey Club':'UTA','Vancouver Canucks':'VAN',
+  'Vegas Golden Knights':'VGK','Washington Capitals':'WSH','Winnipeg Jets':'WPG',
+}
+
 function isInPast(startsAt) {
   if (!startsAt) return false
   try {
@@ -583,20 +622,18 @@ export default function App() {
         cur.threshold = a.threshold
       }
     }
-    // 공개 구매율 매칭 (약자 포함 여부로 매칭)
+    // 공개 구매율 매칭 (약자 테이블 기반)
     const pbData = pbRes.data || []
     function findPb(game) {
       const sportMap = { baseball: 'mlb', basketball: 'nba', hockey: 'nhl' }
       const sport = sportMap[game.sport] || game.sport
-      return pbData.find(pb => {
-        if (pb.sport !== sport) return false
-        const h = game.home?.toUpperCase() || ''
-        const a = game.away?.toUpperCase() || ''
-        const pbh = pb.home?.toUpperCase() || ''
-        const pba = pb.away?.toUpperCase() || ''
-        return (h.includes(pbh) || pbh.includes(h.slice(0,3))) &&
-               (a.includes(pba) || pba.includes(a.slice(0,3)))
-      }) || null
+      const homeAbbr = TEAM_ABBREV[game.home] || ''
+      const awayAbbr = TEAM_ABBREV[game.away] || ''
+      return pbData.find(pb =>
+        pb.sport === sport &&
+        pb.home?.toUpperCase() === homeAbbr.toUpperCase() &&
+        pb.away?.toUpperCase() === awayAbbr.toUpperCase()
+      ) || null
     }
 
     const merged = (linesRes.data || []).map(g => ({
