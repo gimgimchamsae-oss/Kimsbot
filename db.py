@@ -1,12 +1,13 @@
 """
 DB 관리 - Supabase (운영) / SQLite (로컬 폴백)
+배치 쿼리로 API 호출 최소화 (127경기 → ~5회 호출)
 """
 
 import os
 import sqlite3
 from contextlib import contextmanager
+from datetime import datetime, timezone, timedelta
 
-# Supabase 환경변수 있으면 Supabase 사용
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 USE_SUPABASE = bool(SUPABASE_URL and SUPABASE_KEY)
@@ -34,7 +35,7 @@ def _sqlite():
 
 def init_db():
     if USE_SUPABASE:
-        return  # Supabase는 테이블 이미 생성됨
+        return
     with _sqlite() as conn:
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS snapshots (
@@ -75,7 +76,144 @@ def _game_row(game: dict) -> dict:
     return {k: game.get(k) for k in keys}
 
 
-# ── 오프닝 저장 ──────────────────────────────────────────
+# ════════════════════════════════════════════════════════
+#  배치 조회 (API 호출 최소화)
+# ════════════════════════════════════════════════════════
+
+def get_all_openings_batch(matchup_ids: list) -> dict:
+    """matchup_id 리스트 → {matchup_id: opening_row} 딕셔너리 (1회 쿼리)"""
+    if not matchup_ids:
+        return {}
+    if USE_SUPABASE:
+        res = _sb().table("opening_lines").select("*").in_("matchup_id", matchup_ids).execute()
+        return {r["matchup_id"]: r for r in (res.data or [])}
+    else:
+        with _sqlite() as conn:
+            ph = ",".join("?" * len(matchup_ids))
+            rows = conn.execute(
+                f"SELECT * FROM opening_lines WHERE matchup_id IN ({ph})", matchup_ids
+            ).fetchall()
+            return {r["matchup_id"]: dict(r) for r in rows}
+
+
+def get_recent_snapshots_batch(matchup_ids: list, limit_per_game: int = 10) -> dict:
+    """matchup_id 리스트 → {matchup_id: [snapshot, ...]} (최근 N개, 1회 쿼리)"""
+    if not matchup_ids:
+        return {}
+    # 최근 limit_per_game*6분 창 (5분 간격 × limit × 여유)
+    from_ts = (datetime.now(timezone.utc) - timedelta(minutes=limit_per_game * 6)).isoformat()
+    if USE_SUPABASE:
+        res = (_sb().table("snapshots")
+               .select("*")
+               .in_("matchup_id", matchup_ids)
+               .gte("ts", from_ts)
+               .order("id", desc=True)
+               .limit(len(matchup_ids) * limit_per_game + 100)
+               .execute())
+        result: dict[int, list] = {}
+        for r in (res.data or []):
+            mid = r["matchup_id"]
+            lst = result.setdefault(mid, [])
+            if len(lst) < limit_per_game:
+                lst.append(r)
+        return result
+    else:
+        with _sqlite() as conn:
+            ph = ",".join("?" * len(matchup_ids))
+            rows = conn.execute(
+                f"SELECT * FROM snapshots WHERE matchup_id IN ({ph})"
+                f" AND ts >= ? ORDER BY id DESC LIMIT ?",
+                matchup_ids + [from_ts[:19], len(matchup_ids) * limit_per_game + 100]
+            ).fetchall()
+            result: dict[int, list] = {}
+            for row in rows:
+                d = dict(row)
+                mid = d["matchup_id"]
+                lst = result.setdefault(mid, [])
+                if len(lst) < limit_per_game:
+                    lst.append(d)
+            return result
+
+
+def save_snapshots_batch(games: list):
+    """스냅샷 전체 배치 INSERT (1회 쿼리)"""
+    if not games:
+        return
+    rows = [_game_row(g) for g in games]
+    if USE_SUPABASE:
+        _sb().table("snapshots").insert(rows).execute()
+    else:
+        with _sqlite() as conn:
+            for row in rows:
+                cols = ", ".join(row.keys())
+                vals = ", ".join(f":{k}" for k in row.keys())
+                conn.execute(f"INSERT INTO snapshots ({cols}) VALUES ({vals})", row)
+
+
+def save_openings_batch(games: list):
+    """신규 오프닝 배치 UPSERT (1회 쿼리)"""
+    if not games:
+        return
+    rows = [_game_row(g) for g in games]
+    if USE_SUPABASE:
+        _sb().table("opening_lines").upsert(
+            rows, on_conflict="matchup_id", ignore_duplicates=True
+        ).execute()
+    else:
+        with _sqlite() as conn:
+            for row in rows:
+                cols = ", ".join(row.keys())
+                vals = ", ".join(f":{k}" for k in row.keys())
+                conn.execute(f"INSERT OR IGNORE INTO opening_lines ({cols}) VALUES ({vals})", row)
+
+
+def fill_opening_nulls_batch(games: list, existing_openings: dict):
+    """
+    기존 오프닝에 null 필드가 있을 때만 업데이트.
+    already-fetched existing_openings 딕셔너리 활용 → 개별 SELECT 불필요.
+    """
+    FIELDS = ["ml_home","ml_away","ml_draw","sp_pts","sp_home","sp_away",
+              "ou_pts","ou_over","ou_under"]
+    if USE_SUPABASE:
+        sb = _sb()
+        for game in games:
+            mid = game["matchup_id"]
+            cur = existing_openings.get(mid)
+            if not cur:
+                continue
+            # null 필드가 하나도 없으면 스킵
+            if all(cur.get(k) is not None for k in FIELDS):
+                continue
+            row = _game_row(game)
+            updates = {k: row[k] for k in FIELDS
+                       if row.get(k) is not None and cur.get(k) is None}
+            if updates:
+                sb.table("opening_lines").update(updates).eq("matchup_id", mid).execute()
+    else:
+        with _sqlite() as conn:
+            FIELDS_SQL = ["ml_home","ml_away","ml_draw","sp_pts","sp_home","sp_away",
+                          "ou_pts","ou_over","ou_under"]
+            for game in games:
+                mid = game["matchup_id"]
+                cur = existing_openings.get(mid)
+                if not cur:
+                    continue
+                row = _game_row(game)
+                updates = {k: row[k] for k in FIELDS_SQL
+                           if row.get(k) is not None and cur.get(k) is None}
+                if updates:
+                    set_clause = ", ".join(f"{k}=:{k}" for k in updates)
+                    updates["matchup_id"] = mid
+                    conn.execute(
+                        f"UPDATE opening_lines SET {set_clause} WHERE matchup_id=:matchup_id",
+                        updates
+                    )
+
+
+# ════════════════════════════════════════════════════════
+#  단건 조회 (하위 호환 유지 — 로컬 디버그용)
+# ════════════════════════════════════════════════════════
+
 def save_opening(game: dict):
     row = _game_row(game)
     if USE_SUPABASE:
@@ -88,7 +226,6 @@ def save_opening(game: dict):
 
 
 def fill_opening_nulls(game: dict):
-    """opening_lines에 항목은 있지만 null인 필드를 현재 값으로 채움"""
     row = _game_row(game)
     mid = row["matchup_id"]
     fields = ["ml_home","ml_away","ml_draw","sp_pts","sp_home","sp_away","ou_pts","ou_over","ou_under"]
@@ -123,7 +260,6 @@ def get_opening(matchup_id: int):
             return dict(row) if row else None
 
 
-# ── 스냅샷 저장 ──────────────────────────────────────────
 def save_snapshot(game: dict):
     row = _game_row(game)
     if USE_SUPABASE:
