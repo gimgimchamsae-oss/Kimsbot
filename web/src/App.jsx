@@ -487,9 +487,9 @@ function PctBar({ label, pct, handle }) {
     <div className="mb-1">
       <div className="flex justify-between text-xs mb-0.5">
         <span className="text-gray-400">{label}</span>
-        <span className="text-gray-300">
-          {pct}% 베팅
-          {handle != null && <span className="text-gray-500 ml-1">{handle}% 금액</span>}
+        <span className="text-white font-medium">
+          {pct}% <span className="text-gray-400 font-normal">베팅</span>
+          {handle != null && <span className="text-gray-400 ml-2">{handle}% 금액</span>}
         </span>
       </div>
       <div className="w-full bg-gray-700 rounded-full h-1.5">
