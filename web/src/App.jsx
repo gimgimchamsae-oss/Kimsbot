@@ -503,7 +503,7 @@ function PublicBetting({ pb, isSoccer }) {
   if (!pb) return null
   return (
     <div className="mt-2 pt-2 border-t border-gray-700">
-      <div className="text-xs text-gray-500 mb-1.5">👥 공개 구매율</div>
+      <div className="text-xs text-gray-500 mb-1.5">👥 해외 구매율</div>
       <div className="space-y-1">
         <PctBar label="홈 ML"  pct={pb.ml_bets_home}  handle={pb.ml_handle_home} />
         <PctBar label="원정 ML" pct={pb.ml_bets_away}  handle={pb.ml_handle_away} />
@@ -511,6 +511,28 @@ function PublicBetting({ pb, isSoccer }) {
         {pb.sp_bets_away != null && <PctBar label="원정 핸디" pct={pb.sp_bets_away} handle={pb.sp_handle_away} />}
         {pb.ou_bets_over != null && <PctBar label="오버" pct={pb.ou_bets_over} handle={pb.ou_handle_over} />}
         {pb.ou_bets_under != null && <PctBar label="언더" pct={pb.ou_bets_under} handle={pb.ou_handle_under} />}
+      </div>
+    </div>
+  )
+}
+
+function ProtoBetting({ proto }) {
+  if (!proto) return null
+  const hasSp = proto.sp_bets_home != null || proto.sp_bets_away != null
+  const hasOu = proto.ou_bets_over != null || proto.ou_bets_under != null
+  const hasMl = proto.ml_bets_home != null || proto.ml_bets_away != null
+  if (!hasMl && !hasOu && !hasSp) return null
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-700">
+      <div className="text-xs text-gray-500 mb-1.5">🇰🇷 국내 구매율</div>
+      <div className="space-y-1">
+        {proto.ml_bets_home != null && <PctBar label="홈 승" pct={proto.ml_bets_home} />}
+        {proto.ml_bets_draw != null && <PctBar label="무" pct={proto.ml_bets_draw} />}
+        {proto.ml_bets_away != null && <PctBar label="원정 승" pct={proto.ml_bets_away} />}
+        {hasSp && proto.sp_bets_home != null && <PctBar label="홈 핸디" pct={proto.sp_bets_home} />}
+        {hasSp && proto.sp_bets_away != null && <PctBar label="원정 핸디" pct={proto.sp_bets_away} />}
+        {hasOu && proto.ou_bets_over != null && <PctBar label="오버" pct={proto.ou_bets_over} />}
+        {hasOu && proto.ou_bets_under != null && <PctBar label="언더" pct={proto.ou_bets_under} />}
       </div>
     </div>
   )
@@ -587,6 +609,8 @@ function GameCard({ game, onClick }) {
 
       {/* 공개 구매율 */}
       <PublicBetting pb={game.publicBetting} isSoccer={isSoccer} />
+      {/* 국내 구매율 */}
+      <ProtoBetting proto={game.protoBetting} />
     </div>
   )
 }
@@ -603,13 +627,14 @@ export default function App() {
 
   async function fetchGames() {
     setLoading(true)
-    const [linesRes, openingsRes, alertsRes, pbRes] = await Promise.all([
+    const [linesRes, openingsRes, alertsRes, pbRes, protoRes] = await Promise.all([
       supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
       supabase.from('opening_lines')
         .select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
         .limit(3000),
       supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
       supabase.from('public_betting').select('*'),
+      supabase.from('proto_betting').select('*'),
     ])
     const openingsMap = Object.fromEntries((openingsRes.data || []).map(o => [o.matchup_id, o]))
     const currentIds  = new Set((linesRes.data || []).map(g => g.matchup_id))
@@ -626,7 +651,7 @@ export default function App() {
         cur.threshold = a.threshold
       }
     }
-    // 공개 구매율 매칭
+    // 해외 공개 구매율 매칭 (sportsbettingdime)
     const pbData = pbRes.data || []
     console.log('[PB] 테이블 로드:', pbData.length, '건', pbRes.error || '')
     if (pbData.length > 0) console.log('[PB] 샘플:', pbData[0])
@@ -649,11 +674,42 @@ export default function App() {
       return match || null
     }
 
+    // 국내 구매율 매칭 (previewn)
+    const protoData = protoRes.data || []
+    console.log('[Proto] 테이블 로드:', protoData.length, '건', protoRes.error || '')
+
+    function findProto(game) {
+      const sportMap = { baseball: 'baseball', basketball: 'basketball', soccer: 'soccer' }
+      const sport = sportMap[game.sport]
+      if (!sport) return null
+
+      if (sport === 'soccer') {
+        // 축구: proto의 home_abbr/away_abbr (영문 팀명) vs Pinnacle game.home/game.away
+        const norm = s => (s || '').trim().toLowerCase()
+        return protoData.find(p =>
+          p.sport === 'soccer' &&
+          norm(p.home_abbr) === norm(game.home) &&
+          norm(p.away_abbr) === norm(game.away)
+        ) || null
+      } else {
+        // 야구/농구: proto의 home_abbr/away_abbr (예: 'LAD') vs TEAM_ABBREV[game.home]
+        const homeAbbr = TEAM_ABBREV[game.home] || ''
+        const awayAbbr = TEAM_ABBREV[game.away] || ''
+        if (!homeAbbr || !awayAbbr) return null
+        return protoData.find(p =>
+          p.sport === sport &&
+          p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
+          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
+        ) || null
+      }
+    }
+
     const merged = (linesRes.data || []).map(g => ({
       ...g,
       opening:      openingsMap[g.matchup_id] || null,
       recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
       publicBetting: findPb(g),
+      protoBetting:  findProto(g),
     }))
     setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
