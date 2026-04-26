@@ -391,10 +391,23 @@ async def scrape_proto(page) -> list[dict]:
     print(f"GraphQL odds 항목 {len(odds_data)}건 캡처")
     games = parse_odds(odds_data)
 
-    # 결과 출력
-    for g in games[:5]:
-        print(f"  {g['league']} {g['home']}({g['home_abbr']}) vs {g['away']}({g['away_abbr']})")
-        print(f"    ML홈{g['ml_bets_home']}% 원정{g['ml_bets_away']}% | OU오버{g['ou_bets_over']}% 언더{g['ou_bets_under']}%")
+    # 스포츠별 샘플 출력
+    from itertools import groupby
+    by_sport = {}
+    for g in games:
+        by_sport.setdefault(g['sport'], []).append(g)
+    for sport, gs in by_sport.items():
+        print(f"\n[{sport.upper()}] {len(gs)}경기")
+        for g in gs[:3]:
+            if sport == 'soccer':
+                print(f"  {g['league']} {g['home']}({g['home_abbr']}) vs {g['away']}({g['away_abbr']})")
+                print(f"    홈승{g['ml_bets_home']}% 무{g['ml_bets_draw']}% 원정{g['ml_bets_away']}% | OU오버{g['ou_bets_over']}% 언더{g['ou_bets_under']}%")
+            elif sport == 'basketball':
+                print(f"  {g['league']} {g['home']}({g['home_abbr']}) vs {g['away']}({g['away_abbr']})")
+                print(f"    ML홈{g['ml_bets_home']}% 원정{g['ml_bets_away']}% | 핸디홈{g['sp_bets_home']}% 원정{g['sp_bets_away']}% | OU오버{g['ou_bets_over']}% 언더{g['ou_bets_under']}%")
+            else:
+                print(f"  {g['league']} {g['home']}({g['home_abbr']}) vs {g['away']}({g['away_abbr']})")
+                print(f"    ML홈{g['ml_bets_home']}% 원정{g['ml_bets_away']}% | OU오버{g['ou_bets_over']}% 언더{g['ou_bets_under']}%")
 
     return games
 
