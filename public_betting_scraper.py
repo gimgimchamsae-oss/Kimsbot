@@ -26,90 +26,96 @@ def _sb():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def _pct(text: str) -> int | None:
-    """'65%' → 65"""
+def _pct(text: str):
+    """'16%' → 16"""
     try:
-        return int(re.sub(r"[^\d]", "", text))
+        m = re.search(r'\d+', text)
+        return int(m.group()) if m else None
     except Exception:
         return None
 
 
+async def get_cells(row) -> list[str]:
+    cells = await row.query_selector_all("td")
+    texts = []
+    for c in cells:
+        texts.append((await c.inner_text()).strip())
+    return texts
+
+
 async def scrape_sport(page, sport: str, url: str) -> list[dict]:
-    print(f"[{sport.upper()}] 스크래핑 중... {url}")
+    print(f"[{sport.upper()}] 스크래핑 중...")
     try:
-        await page.goto(url, wait_until="networkidle", timeout=45000)
-        # 테이블 로딩 대기
-        await page.wait_for_selector("table", timeout=20000)
-        await page.wait_for_timeout(2000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(8000)
     except Exception as e:
         print(f"[{sport.upper()}] 페이지 로드 실패: {e}")
         return []
 
+    tables = await page.query_selector_all("table")
+    if len(tables) < 2:
+        print(f"[{sport.upper()}] 테이블 없음")
+        return []
+
+    # 두 번째 테이블에서 (no class) 행만 추출
+    all_rows = await tables[1].query_selector_all("tr")
+    data_rows = []
+    for row in all_rows:
+        cls = await row.get_attribute("class") or ""
+        if cls.strip() == "":  # (no class) 행만
+            data_rows.append(row)
+
     games = []
-    try:
-        rows = await page.query_selector_all("table tbody tr")
-        print(f"[{sport.upper()}] 행 {len(rows)}개 발견")
+    i = 0
+    while i < len(data_rows):
+        row = data_rows[i]
+        text = (await row.inner_text()).strip()
 
-        i = 0
-        while i < len(rows) - 1:
-            row_away = rows[i]
-            row_home = rows[i + 1]
+        # 날짜 행 (UTC 포함)
+        if "UTC" in text or "pm UTC" in text or "am UTC" in text:
+            # 다음 두 행이 원정/홈 팀
+            if i + 2 < len(data_rows):
+                away_cells = await get_cells(data_rows[i + 1])
+                home_cells = await get_cells(data_rows[i + 2])
 
-            # 팀명 추출
-            away_el = await row_away.query_selector("td:first-child")
-            home_el = await row_home.query_selector("td:first-child")
-            if not away_el or not home_el:
-                i += 1
-                continue
+                # 유효한 팀 데이터 확인 (셀 수 충분한지)
+                if len(away_cells) >= 3 and len(home_cells) >= 3:
+                    away = away_cells[0] if away_cells else ""
+                    home = home_cells[0] if home_cells else ""
 
-            away = (await away_el.inner_text()).strip()
-            home = (await home_el.inner_text()).strip()
+                    # "Matchup Report" 같은 비팀 행 제외
+                    if away and home and "Report" not in away and "Report" not in home:
+                        game = {
+                            "sport":           sport,
+                            "away":            away,
+                            "home":            home,
+                            "game_time":       text,
+                            # ML
+                            "ml_bets_away":    _pct(away_cells[2]) if len(away_cells) > 2 else None,
+                            "ml_handle_away":  _pct(away_cells[3]) if len(away_cells) > 3 else None,
+                            "ml_bets_home":    _pct(home_cells[2]) if len(home_cells) > 2 else None,
+                            "ml_handle_home":  _pct(home_cells[3]) if len(home_cells) > 3 else None,
+                            # Spread
+                            "sp_bets_away":    _pct(away_cells[5]) if len(away_cells) > 5 else None,
+                            "sp_handle_away":  _pct(away_cells[6]) if len(away_cells) > 6 else None,
+                            "sp_bets_home":    _pct(home_cells[5]) if len(home_cells) > 5 else None,
+                            "sp_handle_home":  _pct(home_cells[6]) if len(home_cells) > 6 else None,
+                            # Total
+                            "ou_bets_over":    _pct(away_cells[8]) if len(away_cells) > 8 else None,
+                            "ou_handle_over":  _pct(away_cells[9]) if len(away_cells) > 9 else None,
+                            "ou_bets_under":   _pct(home_cells[8]) if len(home_cells) > 8 else None,
+                            "ou_handle_under": _pct(home_cells[9]) if len(home_cells) > 9 else None,
+                            "updated_at":      datetime.now(KST).isoformat(),
+                        }
+                        games.append(game)
+                        print(f"  {away} vs {home} | ML베팅 원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%")
+                        i += 3  # 날짜 + 원정 + 홈
+                        continue
+            i += 1
+        else:
+            i += 1
 
-            # 팀명 없으면 스킵
-            if not away or not home or len(away) < 2 or len(home) < 2:
-                i += 1
-                continue
-
-            # 셀 추출 (away row)
-            away_cells = await row_away.query_selector_all("td")
-            home_cells = await row_home.query_selector_all("td")
-
-            async def cell_text(cells, idx):
-                try:
-                    return (await cells[idx].inner_text()).strip()
-                except Exception:
-                    return ""
-
-            # 컬럼 순서: 팀명 | ML베팅% | ML핸들% | 스프레드베팅% | 스프레드핸들% | 토탈베팅% | 토탈핸들%
-            game = {
-                "sport":           sport,
-                "away":            away,
-                "home":            home,
-                "ml_bets_away":    _pct(await cell_text(away_cells, 1)),
-                "ml_handle_away":  _pct(await cell_text(away_cells, 2)),
-                "sp_bets_away":    _pct(await cell_text(away_cells, 3)),
-                "sp_handle_away":  _pct(await cell_text(away_cells, 4)),
-                "ou_bets_over":    _pct(await cell_text(away_cells, 5)),
-                "ou_handle_over":  _pct(await cell_text(away_cells, 6)),
-                "ml_bets_home":    _pct(await cell_text(home_cells, 1)),
-                "ml_handle_home":  _pct(await cell_text(home_cells, 2)),
-                "sp_bets_home":    _pct(await cell_text(home_cells, 3)),
-                "sp_handle_home":  _pct(await cell_text(home_cells, 4)),
-                "ou_bets_under":   _pct(await cell_text(home_cells, 5)),
-                "ou_handle_under": _pct(await cell_text(home_cells, 6)),
-                "updated_at":      datetime.now(KST).isoformat(),
-            }
-
-            # 유효한 데이터인지 확인
-            if game["ml_bets_away"] is not None or game["ml_bets_home"] is not None:
-                games.append(game)
-                print(f"  {away} vs {home}  ML베팅: 원정{game['ml_bets_away']}% / 홈{game['ml_bets_home']}%")
-
-            i += 2  # 2줄씩 처리
-
-    except Exception as e:
-        print(f"[{sport.upper()}] 파싱 오류: {e}")
-
+    print(f"[{sport.upper()}] {len(games)}경기 수집")
     return games
 
 
@@ -119,10 +125,10 @@ async def main():
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
             headless=True,
-            args=["--no-sandbox", "--disable-setuid-sandbox"]
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
         )
         page = await browser.new_page(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
 
         for sport, url in SPORT_URLS.items():
@@ -134,13 +140,12 @@ async def main():
     print(f"\n총 {len(all_games)}경기 구매율 수집 완료")
 
     if not all_games:
-        print("데이터 없음 — 종료")
+        print("데이터 없음")
         return
 
     if SUPABASE_URL and SUPABASE_KEY:
         try:
             sb = _sb()
-            # 전체 교체 (upsert 대신 delete → insert)
             for sport in SPORT_URLS:
                 sb.table("public_betting").delete().eq("sport", sport).execute()
             sb.table("public_betting").insert(all_games).execute()
@@ -148,9 +153,7 @@ async def main():
         except Exception as e:
             print(f"Supabase 저장 실패: {e}")
     else:
-        print("[로컬] Supabase 미설정 — 결과만 출력")
-        for g in all_games:
-            print(g)
+        print("[로컬] Supabase 미설정")
 
 
 if __name__ == "__main__":
