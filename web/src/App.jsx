@@ -321,7 +321,7 @@ function HistoryModal({ game, onClose }) {
         .eq('matchup_id', game.matchup_id)
         .order('id', { ascending: true })
         .limit(500)
-      const rows = (res.data || []).filter(r => r.ml_home != null)
+      const rows = (res.data || []).filter(r => r.ml_home != null || r.sp_home != null || r.ou_over != null)
       const changed = rows.filter((r, i) => {
         if (i === 0) return true
         const p = rows[i - 1]
