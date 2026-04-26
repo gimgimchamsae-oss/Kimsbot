@@ -105,7 +105,9 @@ KR_SOCCER: dict[str, str] = {
     '발렌시아': 'Valencia', '헤타페': 'Getafe', '오사수나': 'Osasuna',
     '라요바예카노': 'Rayo Vallecano', '알라베스': 'Alaves',
     '레알오비에도': 'Real Oviedo', '지로나': 'Girona',
-    'RC셀타데비고': 'Celta Vigo', '엘체': 'Elche',
+    'RC셀타데비고': 'Celta Vigo', '셀타데비고': 'Celta Vigo', '엘체': 'Elche',
+    'RCD마요르카': 'Mallorca', '마요르카': 'Mallorca',
+    '웨스트브로미치앨비언': 'West Bromwich Albion', '웨스트브로미치 앨비언': 'West Bromwich Albion',
     # ── Bundesliga ───────────────────────────────────
     '바이에른뮌헨': 'Bayern Munich', '바이에른 뮌헨': 'Bayern Munich',
     '도르트문트': 'Borussia Dortmund', '바이어04레버쿠젠': 'Bayer Leverkusen',
@@ -169,6 +171,8 @@ KR_SOCCER: dict[str, str] = {
     '김포FC': 'Gimpo FC', '천안시티FC': 'Cheonan City',
     '충북청주프로축구단': 'Cheongju FC', '용인FC': 'Yongin FC',
     '화성FC': 'Hwaseong FC', '파주프런티어': 'Paju Citizen',
+    '전남드래곤즈': 'Jeonnam Dragons', 'FC안양': 'FC Anyang',
+    '김해FC2008': 'Gimhae FC',
     # ── MLS ──────────────────────────────────────────
     'LAFC': 'LAFC', 'LA갤럭시': 'LA Galaxy', '인터마이애미CF': 'Inter Miami',
     '애틀랜타유나이티드FC': 'Atlanta United', '뉴욕레드불스': 'New York Red Bulls',
@@ -198,7 +202,9 @@ KR_SOCCER: dict[str, str] = {
     '몬테디오야마가타': 'Montedio Yamagata', '미토홀리호크': 'Mito Hollyhock',
     '카탈레도야마': 'Kataller Toyama', '블라우블리츠아키타': 'Blaublitz Akita',
     '이와키FC': 'Iwaki FC', '반라우레하치노헤FC': 'Vanraure Hachinohe',
-    '요미우리': 'Yomiuri',
+    '요미우리': 'Yomiuri', '요미우리 자이언츠': 'Yomiuri Giants',
+    '제프유나이티드지바': 'JEF United Chiba', '파지아노오카야마': 'Fagiano Okayama',
+    '후지에다MYFC': 'Fujiedha MYFC',
     # ── NPB (일본프로야구 - 이미 baseball로 처리) ────────
     # ── A-League (호주) ───────────────────────────────
     '멜버른빅토리': 'Melbourne Victory', '멜버른시티': 'Melbourne City',
@@ -207,6 +213,8 @@ KR_SOCCER: dict[str, str] = {
     '애들레이드유나이티드': 'Adelaide United', '센트럴코스트매리너스': 'Central Coast Mariners',
     '웰링턴피닉스': 'Wellington Phoenix', '맥아서FC': 'Macarthur FC',
     '뉴캐슬제츠': 'Newcastle Jets',
+    # ── MLS (추가) ────────────────────────────────────
+    'FC신시내티': 'FC Cincinnati', 'FC 신시내티': 'FC Cincinnati',
     # ── 기타 ──────────────────────────────────────────
     '알아흘리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
 }
