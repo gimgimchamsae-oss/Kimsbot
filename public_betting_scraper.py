@@ -57,28 +57,26 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
         return []
 
     tables = await page.query_selector_all("table")
-    print(f"[{sport.upper()}] 테이블 {len(tables)}개 발견")
     if not tables:
         print(f"[{sport.upper()}] 테이블 없음")
         return []
 
-    # class없는 행이 가장 많은 테이블 선택
+    # class없는 행이 가장 많은 테이블 선택 (MLB/NBA=table[1], NHL=table[0])
     target_table = None
     max_data_rows = 0
-    for idx, tbl in enumerate(tables):
+    for tbl in tables:
         rows = await tbl.query_selector_all("tr")
         data_rows = 0
         for row in rows:
             cls = (await row.get_attribute("class") or "").strip()
             if cls == "":
                 data_rows += 1
-        print(f"  table[{idx}]: tr {len(rows)}개, class없는행 {data_rows}개")
         if data_rows > max_data_rows:
             max_data_rows = data_rows
             target_table = tbl
 
     if target_table is None or max_data_rows < 3:
-        print(f"[{sport.upper()}] 게임 데이터 테이블 없음")
+        print(f"[{sport.upper()}] 게임 데이터 없음")
         return []
 
     # 선택된 테이블에서 class 없는 행만 추출
@@ -132,8 +130,7 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
                     games.append(game)
                     print(f"  {away} vs {home} | ML원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%"
                           f" | SP원정{game['sp_bets_away']}% 홈{game['sp_bets_home']}%"
-                          f" | OU오버{game['ou_bets_over']}% 언더{game['ou_bets_under']}%"
-                          f" | cells원정{len(away_cells)} 홈{len(home_cells)}")
+                          f" | OU오버{game['ou_bets_over']}% 언더{game['ou_bets_under']}%")
                     i += 3
                     continue
         i += 1
@@ -143,8 +140,6 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
 
 
 async def main():
-    import os as _os
-    print(f"=== SCRAPER v5 | 실행경로: {_os.path.abspath(__file__)} ===")
     all_games = []
 
     async with async_playwright() as pw:

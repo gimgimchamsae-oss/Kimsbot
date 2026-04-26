@@ -31,11 +31,8 @@ jobs:
       - name: Install Chromium
         run: playwright install chromium --with-deps
 
-      - name: Clear pycache
-        run: find . -name "*.pyc" -delete && find . -name "__pycache__" -type d -exec rm -rf {} + || true
-
       - name: Run scraper
-        run: python -B public_betting_scraper.py
+        run: python public_betting_scraper.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
