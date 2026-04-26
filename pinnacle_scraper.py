@@ -69,10 +69,20 @@ def fetch_games() -> list[dict]:
             continue
 
         mkt_idx: dict[int, dict] = {}
+        periods_found = set()
         for m in markets:
+            periods_found.add(m.get("period"))
             if (m.get("period") == 0 and not m.get("isAlternate")
                     and m["type"] in ("moneyline", "spread", "total")):
                 mkt_idx.setdefault(m["matchupId"], {})[m["type"]] = m
+        if not mkt_idx and markets:
+            print(f"[{lname}] period=0 마켓 없음, 실제 periods: {sorted(periods_found)}")
+            # period=0 없으면 가장 낮은 period 사용
+            min_period = min(p for p in periods_found if p is not None and p >= 0)
+            for m in markets:
+                if (m.get("period") == min_period and not m.get("isAlternate")
+                        and m["type"] in ("moneyline", "spread", "total")):
+                    mkt_idx.setdefault(m["matchupId"], {})[m["type"]] = m
 
         for mu in matchups:
             if "participants" not in mu or mu.get("parentId"):
