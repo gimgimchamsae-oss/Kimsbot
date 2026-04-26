@@ -484,13 +484,17 @@ function HistoryModal({ game, onClose }) {
 function PctBar({ label, pct, handle }) {
   if (pct == null) return null
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="text-gray-400 w-16 shrink-0 whitespace-nowrap">{label}</span>
-      <div className="flex-1 bg-gray-700 rounded-full h-1.5 min-w-0">
+    <div className="mb-1">
+      <div className="flex justify-between text-xs mb-0.5">
+        <span className="text-gray-400">{label}</span>
+        <span className="text-gray-300">
+          {pct}% 베팅
+          {handle != null && <span className="text-gray-500 ml-1">{handle}% 금액</span>}
+        </span>
+      </div>
+      <div className="w-full bg-gray-700 rounded-full h-1.5">
         <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-gray-300 w-8 text-right shrink-0">{pct}%</span>
-      {handle != null && <span className="text-gray-500 w-9 text-right shrink-0">{handle}%</span>}
     </div>
   )
 }
