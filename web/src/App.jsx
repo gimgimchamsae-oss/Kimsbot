@@ -622,18 +622,27 @@ export default function App() {
         cur.threshold = a.threshold
       }
     }
-    // 공개 구매율 매칭 (약자 테이블 기반)
+    // 공개 구매율 매칭
     const pbData = pbRes.data || []
+    console.log('[PB] 테이블 로드:', pbData.length, '건', pbRes.error || '')
+    if (pbData.length > 0) console.log('[PB] 샘플:', pbData[0])
+
     function findPb(game) {
       const sportMap = { baseball: 'mlb', basketball: 'nba', hockey: 'nhl' }
       const sport = sportMap[game.sport] || game.sport
+      if (!['mlb','nba','nhl'].includes(sport)) return null
       const homeAbbr = TEAM_ABBREV[game.home] || ''
       const awayAbbr = TEAM_ABBREV[game.away] || ''
-      return pbData.find(pb =>
+      if (!homeAbbr || !awayAbbr) return null
+      const match = pbData.find(pb =>
         pb.sport === sport &&
         pb.home?.toUpperCase() === homeAbbr.toUpperCase() &&
         pb.away?.toUpperCase() === awayAbbr.toUpperCase()
-      ) || null
+      )
+      if (!match && sport === 'mlb') {
+        console.log(`[PB] 매칭실패 ${game.away}@${game.home} → abbr=${awayAbbr}@${homeAbbr} sport=${sport}`)
+      }
+      return match || null
     }
 
     const merged = (linesRes.data || []).map(g => ({
