@@ -37,11 +37,13 @@ def _pct(text: str):
 
 
 async def get_team_and_cells(row):
-    """팀명(th) + 데이터셀(td) 반환"""
+    """팀명(th) + 데이터셀(td) 반환
+    text_content() 사용: CSS display:none 숨김 셀도 값 반환 (inner_text는 빈 문자열 반환)
+    """
     th = await row.query_selector("th")
     team = (await th.inner_text()).strip() if th else ""
     cells = await row.query_selector_all("td")
-    texts = [(await c.inner_text()).strip() for c in cells]
+    texts = [(await c.text_content() or "").strip() for c in cells]
     return team, texts
 
 
