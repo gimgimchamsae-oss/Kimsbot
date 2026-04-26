@@ -2,6 +2,8 @@
 Pinnacle 배당 수집 (requests 기반)
 야구: MLB / KBO / NPB
 축구: EPL / Bundesliga / Serie A / Ligue 1 / La Liga
+농구: NBA / KBL
+아이스하키: NHL
 """
 
 import requests
@@ -39,6 +41,10 @@ LEAGUES = {
     "2627":   ("UCL",          "soccer"),
     "2630":   ("Europa",       "soccer"),
     "214101": ("Conference",   "soccer"),
+    # 농구
+    "487":    ("NBA",          "basketball"),
+    # 아이스하키
+    "1456":   ("NHL",          "hockey"),
 }
 
 
@@ -65,10 +71,20 @@ def fetch_games() -> list[dict]:
             continue
 
         mkt_idx: dict[int, dict] = {}
+        periods_found = set()
         for m in markets:
+            periods_found.add(m.get("period"))
             if (m.get("period") == 0 and not m.get("isAlternate")
                     and m["type"] in ("moneyline", "spread", "total")):
                 mkt_idx.setdefault(m["matchupId"], {})[m["type"]] = m
+        if not mkt_idx and markets:
+            print(f"[{lname}] period=0 마켓 없음, 실제 periods: {sorted(periods_found)}")
+            # period=0 없으면 가장 낮은 period 사용
+            min_period = min(p for p in periods_found if p is not None and p >= 0)
+            for m in markets:
+                if (m.get("period") == min_period and not m.get("isAlternate")
+                        and m["type"] in ("moneyline", "spread", "total")):
+                    mkt_idx.setdefault(m["matchupId"], {})[m["type"]] = m
 
         for mu in matchups:
             if "participants" not in mu or mu.get("parentId"):
@@ -76,6 +92,9 @@ def fetch_games() -> list[dict]:
             home = next((p["name"] for p in mu["participants"] if p["alignment"] == "home"), "")
             away = next((p["name"] for p in mu["participants"] if p["alignment"] == "away"), "")
             if not home or not away:
+                continue
+            # "Home Teams (6 Games)" 같은 묶음 경기 제외
+            if "Games)" in home or "Games)" in away:
                 continue
 
             raw = mu.get("startTime") or (mu.get("periods") or [{}])[0].get("cutoffAt", "")

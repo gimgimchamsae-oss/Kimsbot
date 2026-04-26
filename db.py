@@ -87,6 +87,32 @@ def save_opening(game: dict):
             conn.execute(f"INSERT OR IGNORE INTO opening_lines ({cols}) VALUES ({vals})", row)
 
 
+def fill_opening_nulls(game: dict):
+    """opening_lines에 항목은 있지만 null인 필드를 현재 값으로 채움"""
+    row = _game_row(game)
+    mid = row["matchup_id"]
+    fields = ["ml_home","ml_away","ml_draw","sp_pts","sp_home","sp_away","ou_pts","ou_over","ou_under"]
+    if USE_SUPABASE:
+        existing = _sb().table("opening_lines").select(",".join(fields)).eq("matchup_id", mid).execute()
+        if not existing.data:
+            return
+        cur = existing.data[0]
+        updates = {k: row[k] for k in fields if row.get(k) is not None and cur.get(k) is None}
+        if updates:
+            _sb().table("opening_lines").update(updates).eq("matchup_id", mid).execute()
+    else:
+        with _sqlite() as conn:
+            cur = conn.execute("SELECT * FROM opening_lines WHERE matchup_id=?", (mid,)).fetchone()
+            if not cur:
+                return
+            cur = dict(cur)
+            updates = {k: row[k] for k in fields if row.get(k) is not None and cur.get(k) is None}
+            if updates:
+                set_clause = ", ".join(f"{k}=:{k}" for k in updates)
+                updates["matchup_id"] = mid
+                conn.execute(f"UPDATE opening_lines SET {set_clause} WHERE matchup_id=:matchup_id", updates)
+
+
 def get_opening(matchup_id: int):
     if USE_SUPABASE:
         res = _sb().table("opening_lines").select("*").eq("matchup_id", matchup_id).execute()
@@ -110,15 +136,21 @@ def save_snapshot(game: dict):
 
 
 def get_prev_snapshot(matchup_id: int):
+    rows = get_recent_snapshots(matchup_id, limit=1)
+    return rows[0] if rows else None
+
+
+def get_recent_snapshots(matchup_id: int, limit: int = 10) -> list:
     if USE_SUPABASE:
-        res = _sb().table("snapshots").select("*").eq("matchup_id", matchup_id).order("id", desc=True).limit(1).execute()
-        return res.data[0] if res.data else None
+        res = _sb().table("snapshots").select("*").eq("matchup_id", matchup_id).order("id", desc=True).limit(limit).execute()
+        return res.data or []
     else:
         with _sqlite() as conn:
-            row = conn.execute(
-                "SELECT * FROM snapshots WHERE matchup_id=? ORDER BY id DESC LIMIT 1", (matchup_id,)
-            ).fetchone()
-            return dict(row) if row else None
+            rows = conn.execute(
+                "SELECT * FROM snapshots WHERE matchup_id=? ORDER BY id DESC LIMIT ?",
+                (matchup_id, limit)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
 
 # ── 알림 이력 ────────────────────────────────────────────
