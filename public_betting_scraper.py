@@ -57,12 +57,30 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
         return []
 
     tables = await page.query_selector_all("table")
-    if len(tables) < 2:
+    print(f"[{sport.upper()}] 테이블 {len(tables)}개 발견")
+    if not tables:
         print(f"[{sport.upper()}] 테이블 없음")
         return []
 
-    # 두 번째 테이블에서 class 없는 행만 추출
-    all_rows = await tables[1].query_selector_all("tr")
+    # 게임 데이터가 있는 테이블 탐색 (class 없는 tr이 3개 이상인 테이블)
+    target_table = None
+    for idx, tbl in enumerate(tables):
+        rows = await tbl.query_selector_all("tr")
+        data_rows = []
+        for row in rows:
+            cls = (await row.get_attribute("class") or "").strip()
+            if cls == "":
+                data_rows.append(row)
+        print(f"  table[{idx}]: tr {len(rows)}개, class없는행 {len(data_rows)}개")
+        if len(data_rows) >= 3 and target_table is None:
+            target_table = tbl
+
+    if target_table is None:
+        print(f"[{sport.upper()}] 게임 데이터 테이블 없음")
+        return []
+
+    # 선택된 테이블에서 class 없는 행만 추출
+    all_rows = await target_table.query_selector_all("tr")
     data_rows = []
     for row in all_rows:
         cls = (await row.get_attribute("class") or "").strip()
