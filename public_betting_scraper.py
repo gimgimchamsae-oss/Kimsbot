@@ -90,18 +90,21 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
                         "sport":           sport,
                         "away":            away,
                         "home":            home,
+                        # td[1]=mobile ML BET%, td[2]=mobile ML Handle% (same values as desktop)
                         "ml_bets_away":    _pct(away_cells[1]) if len(away_cells) > 1 else None,
                         "ml_handle_away":  _pct(away_cells[2]) if len(away_cells) > 2 else None,
                         "ml_bets_home":    _pct(home_cells[1]) if len(home_cells) > 1 else None,
                         "ml_handle_home":  _pct(home_cells[2]) if len(home_cells) > 2 else None,
-                        "sp_bets_away":    _pct(away_cells[4]) if len(away_cells) > 4 else None,
-                        "sp_handle_away":  _pct(away_cells[5]) if len(away_cells) > 5 else None,
-                        "sp_bets_home":    _pct(home_cells[4]) if len(home_cells) > 4 else None,
-                        "sp_handle_home":  _pct(home_cells[5]) if len(home_cells) > 5 else None,
-                        "ou_bets_over":    _pct(away_cells[7]) if len(away_cells) > 7 else None,
-                        "ou_handle_over":  _pct(away_cells[8]) if len(away_cells) > 8 else None,
-                        "ou_bets_under":   _pct(home_cells[7]) if len(home_cells) > 7 else None,
-                        "ou_handle_under": _pct(home_cells[8]) if len(home_cells) > 8 else None,
+                        # td[7]=SP BET%, td[8]=SP Handle% (desktop: 0-2 mobile, 3-5 desktop ML, 6-8 spread)
+                        "sp_bets_away":    _pct(away_cells[7]) if len(away_cells) > 7 else None,
+                        "sp_handle_away":  _pct(away_cells[8]) if len(away_cells) > 8 else None,
+                        "sp_bets_home":    _pct(home_cells[7]) if len(home_cells) > 7 else None,
+                        "sp_handle_home":  _pct(home_cells[8]) if len(home_cells) > 8 else None,
+                        # td[10]=OU BET%, td[11]=OU Handle% (9-11 total)
+                        "ou_bets_over":    _pct(away_cells[10]) if len(away_cells) > 10 else None,
+                        "ou_handle_over":  _pct(away_cells[11]) if len(away_cells) > 11 else None,
+                        "ou_bets_under":   _pct(home_cells[10]) if len(home_cells) > 10 else None,
+                        "ou_handle_under": _pct(home_cells[11]) if len(home_cells) > 11 else None,
                         "updated_at":      datetime.now(KST).isoformat(),
                     }
                     games.append(game)
