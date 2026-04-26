@@ -37,6 +37,7 @@ LEAGUES = {
     "207552": ("K리그2",        "soccer"),
     "2663":   ("MLS",          "soccer"),
     "1766":   ("A리그",         "soccer"),
+    "2157":   ("J리그",         "soccer"),
     # 축구 - UEFA 대회
     "2627":   ("UCL",          "soccer"),
     "2630":   ("Europa",       "soccer"),

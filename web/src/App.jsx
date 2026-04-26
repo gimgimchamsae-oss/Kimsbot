@@ -55,14 +55,14 @@ const LEAGUE_FLAGS = {
   MLB: '🇺🇸', KBO: '🇰🇷', NPB: '🇯🇵',
   EPL: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', Bundesliga: '🇩🇪', 'Serie A': '🇮🇹',
   'Ligue 1': '🇫🇷', 'La Liga': '🇪🇸',
-  'K리그1': '🇰🇷', 'K리그2': '🇰🇷', MLS: '🇺🇸', 'A리그': '🇦🇺',
+  'K리그1': '🇰🇷', 'K리그2': '🇰🇷', MLS: '🇺🇸', 'A리그': '🇦🇺', 'J리그': '🇯🇵',
   UCL: '🏆', Europa: '🟠', Conference: '🟢',
   NBA: '🇺🇸', NHL: '🇺🇸',
 }
 
 const ALL_LEAGUES = [
   'MLB', 'KBO', 'NPB',
-  'EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'K리그2', 'MLS', 'A리그', 'UCL', 'Europa', 'Conference',
+  'EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'K리그2', 'MLS', 'A리그', 'J리그', 'UCL', 'Europa', 'Conference',
   'NBA', 'NHL',
 ]
 
