@@ -32,7 +32,30 @@ jobs:
         run: playwright install chromium --with-deps
 
       - name: Run scraper
-        run: python debug_scraper.py
+        run: |
+          python - <<'EOF'
+          import asyncio
+          from playwright.async_api import async_playwright
+
+          async def main():
+              async with async_playwright() as pw:
+                  browser = await pw.chromium.launch(headless=True, args=["--no-sandbox","--disable-dev-shm-usage"])
+                  page = await browser.new_page(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                  print("V3 실행중")
+                  await page.goto("https://www.sportsbettingdime.com/mlb/public-betting-trends/", wait_until="domcontentloaded", timeout=60000)
+                  try:
+                      await page.wait_for_selector("tr.bg-base-100", timeout=20000)
+                  except:
+                      pass
+                  rows = await page.query_selector_all("tr.bg-base-100")
+                  print(f"bg-base-100 rows: {len(rows)}")
+                  for i, row in enumerate(rows[:4]):
+                      print(f"--- row {i} ---")
+                      print((await row.inner_text()).strip()[:400])
+                  await browser.close()
+
+          asyncio.run(main())
+          EOF
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
