@@ -442,6 +442,37 @@ function HistoryModal({ game, onClose }) {
   )
 }
 
+function PctBar({ label, pct, handle }) {
+  if (pct == null) return null
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-gray-400 w-10 shrink-0">{label}</span>
+      <div className="flex-1 bg-gray-700 rounded-full h-2">
+        <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-gray-300 w-8 text-right">{pct}%</span>
+      {handle != null && <span className="text-gray-500 w-8 text-right">${handle}%</span>}
+    </div>
+  )
+}
+
+function PublicBetting({ pb, isSoccer }) {
+  if (!pb) return null
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-700">
+      <div className="text-xs text-gray-500 mb-1.5">👥 공개 구매율</div>
+      <div className="space-y-1">
+        <PctBar label="홈 ML"  pct={pb.ml_bets_home}  handle={pb.ml_handle_home} />
+        <PctBar label="원정 ML" pct={pb.ml_bets_away}  handle={pb.ml_handle_away} />
+        {pb.sp_bets_home != null && <PctBar label="홈 핸디" pct={pb.sp_bets_home} handle={pb.sp_handle_home} />}
+        {pb.sp_bets_away != null && <PctBar label="원정 핸디" pct={pb.sp_bets_away} handle={pb.sp_handle_away} />}
+        {pb.ou_bets_over != null && <PctBar label="오버" pct={pb.ou_bets_over} handle={pb.ou_handle_over} />}
+        {pb.ou_bets_under != null && <PctBar label="언더" pct={pb.ou_bets_under} handle={pb.ou_handle_under} />}
+      </div>
+    </div>
+  )
+}
+
 function GameCard({ game, onClick }) {
   const flag     = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
@@ -510,6 +541,9 @@ function GameCard({ game, onClick }) {
           <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} highlight={ouUnderHL} />
         </div>
       )}
+
+      {/* 공개 구매율 */}
+      <PublicBetting pb={game.publicBetting} isSoccer={isSoccer} />
     </div>
   )
 }
@@ -526,12 +560,13 @@ export default function App() {
 
   async function fetchGames() {
     setLoading(true)
-    const [linesRes, openingsRes, alertsRes] = await Promise.all([
+    const [linesRes, openingsRes, alertsRes, pbRes] = await Promise.all([
       supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
       supabase.from('opening_lines')
         .select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
         .limit(3000),
       supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
+      supabase.from('public_betting').select('*'),
     ])
     const openingsMap = Object.fromEntries((openingsRes.data || []).map(o => [o.matchup_id, o]))
     const currentIds  = new Set((linesRes.data || []).map(g => g.matchup_id))
@@ -548,10 +583,27 @@ export default function App() {
         cur.threshold = a.threshold
       }
     }
+    // 공개 구매율 매칭 (약자 포함 여부로 매칭)
+    const pbData = pbRes.data || []
+    function findPb(game) {
+      const sportMap = { baseball: 'mlb', basketball: 'nba', hockey: 'nhl' }
+      const sport = sportMap[game.sport] || game.sport
+      return pbData.find(pb => {
+        if (pb.sport !== sport) return false
+        const h = game.home?.toUpperCase() || ''
+        const a = game.away?.toUpperCase() || ''
+        const pbh = pb.home?.toUpperCase() || ''
+        const pba = pb.away?.toUpperCase() || ''
+        return (h.includes(pbh) || pbh.includes(h.slice(0,3))) &&
+               (a.includes(pba) || pba.includes(a.slice(0,3)))
+      }) || null
+    }
+
     const merged = (linesRes.data || []).map(g => ({
       ...g,
       opening:      openingsMap[g.matchup_id] || null,
       recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
+      publicBetting: findPb(g),
     }))
     setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
