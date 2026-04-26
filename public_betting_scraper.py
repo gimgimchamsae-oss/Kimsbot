@@ -1,6 +1,7 @@
 """
 sportsbettingdime.com 공개 구매율 스크래퍼 (Playwright)
 MLB / NBA / NHL 지원
+구조: th=팀명, td[0]=odds, td[1]=BET%, td[2]=Handle%, td[3]=spread, td[4]=BET%, td[5]=Handle%, td[6]=total, td[7]=BET%, td[8]=Handle%
 """
 
 import asyncio
@@ -35,12 +36,13 @@ def _pct(text: str):
         return None
 
 
-async def get_cells(row) -> list[str]:
+async def get_team_and_cells(row):
+    """팀명(th) + 데이터셀(td) 반환"""
+    th = await row.query_selector("th")
+    team = (await th.inner_text()).strip() if th else ""
     cells = await row.query_selector_all("td")
-    texts = []
-    for c in cells:
-        texts.append((await c.inner_text()).strip())
-    return texts
+    texts = [(await c.inner_text()).strip() for c in cells]
+    return team, texts
 
 
 async def scrape_sport(page, sport: str, url: str) -> list[dict]:
@@ -57,63 +59,56 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
         print(f"[{sport.upper()}] 테이블 없음")
         return []
 
-    # 두 번째 테이블에서 (no class) 행만 추출
+    # 두 번째 테이블에서 class 없는 행만 추출
     all_rows = await tables[1].query_selector_all("tr")
     data_rows = []
     for row in all_rows:
-        cls = await row.get_attribute("class") or ""
-        if cls.strip() == "":  # (no class) 행만
+        cls = (await row.get_attribute("class") or "").strip()
+        if cls == "":
             data_rows.append(row)
 
     games = []
     i = 0
     while i < len(data_rows):
-        row = data_rows[i]
-        text = (await row.inner_text()).strip()
+        text = (await data_rows[i].inner_text()).strip()
 
         # 날짜 행 (UTC 포함)
-        if "UTC" in text or "pm UTC" in text or "am UTC" in text:
-            # 다음 두 행이 원정/홈 팀
+        if "UTC" in text:
             if i + 2 < len(data_rows):
-                away_cells = await get_cells(data_rows[i + 1])
-                home_cells = await get_cells(data_rows[i + 2])
+                away, away_cells = await get_team_and_cells(data_rows[i + 1])
+                home, home_cells = await get_team_and_cells(data_rows[i + 2])
 
-                # 유효한 팀 데이터 확인 (셀 수 충분한지)
-                if len(away_cells) >= 3 and len(home_cells) >= 3:
-                    away = away_cells[0] if away_cells else ""
-                    home = home_cells[0] if home_cells else ""
+                if (len(away_cells) >= 3 and len(home_cells) >= 3
+                        and away and home
+                        and "Report" not in away and "Report" not in home
+                        and "UTC" not in away and "UTC" not in home):
 
-                    # "Matchup Report" 같은 비팀 행 제외
-                    if away and home and "Report" not in away and "Report" not in home:
-                        game = {
-                            "sport":           sport,
-                            "away":            away,
-                            "home":            home,
-                            "game_time":       text,
-                            # ML
-                            "ml_bets_away":    _pct(away_cells[2]) if len(away_cells) > 2 else None,
-                            "ml_handle_away":  _pct(away_cells[3]) if len(away_cells) > 3 else None,
-                            "ml_bets_home":    _pct(home_cells[2]) if len(home_cells) > 2 else None,
-                            "ml_handle_home":  _pct(home_cells[3]) if len(home_cells) > 3 else None,
-                            # Spread
-                            "sp_bets_away":    _pct(away_cells[5]) if len(away_cells) > 5 else None,
-                            "sp_handle_away":  _pct(away_cells[6]) if len(away_cells) > 6 else None,
-                            "sp_bets_home":    _pct(home_cells[5]) if len(home_cells) > 5 else None,
-                            "sp_handle_home":  _pct(home_cells[6]) if len(home_cells) > 6 else None,
-                            # Total
-                            "ou_bets_over":    _pct(away_cells[8]) if len(away_cells) > 8 else None,
-                            "ou_handle_over":  _pct(away_cells[9]) if len(away_cells) > 9 else None,
-                            "ou_bets_under":   _pct(home_cells[8]) if len(home_cells) > 8 else None,
-                            "ou_handle_under": _pct(home_cells[9]) if len(home_cells) > 9 else None,
-                            "updated_at":      datetime.now(KST).isoformat(),
-                        }
-                        games.append(game)
-                        print(f"  {away} vs {home} | ML베팅 원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%")
-                        i += 3  # 날짜 + 원정 + 홈
-                        continue
-            i += 1
-        else:
-            i += 1
+                    # td[0]=odds, td[1]=BET%, td[2]=Handle%
+                    # td[3]=spread, td[4]=BET%, td[5]=Handle%
+                    # td[6]=total, td[7]=BET%, td[8]=Handle%
+                    game = {
+                        "sport":           sport,
+                        "away":            away,
+                        "home":            home,
+                        "ml_bets_away":    _pct(away_cells[1]) if len(away_cells) > 1 else None,
+                        "ml_handle_away":  _pct(away_cells[2]) if len(away_cells) > 2 else None,
+                        "ml_bets_home":    _pct(home_cells[1]) if len(home_cells) > 1 else None,
+                        "ml_handle_home":  _pct(home_cells[2]) if len(home_cells) > 2 else None,
+                        "sp_bets_away":    _pct(away_cells[4]) if len(away_cells) > 4 else None,
+                        "sp_handle_away":  _pct(away_cells[5]) if len(away_cells) > 5 else None,
+                        "sp_bets_home":    _pct(home_cells[4]) if len(home_cells) > 4 else None,
+                        "sp_handle_home":  _pct(home_cells[5]) if len(home_cells) > 5 else None,
+                        "ou_bets_over":    _pct(away_cells[7]) if len(away_cells) > 7 else None,
+                        "ou_handle_over":  _pct(away_cells[8]) if len(away_cells) > 8 else None,
+                        "ou_bets_under":   _pct(home_cells[7]) if len(home_cells) > 7 else None,
+                        "ou_handle_under": _pct(home_cells[8]) if len(home_cells) > 8 else None,
+                        "updated_at":      datetime.now(KST).isoformat(),
+                    }
+                    games.append(game)
+                    print(f"  {away} vs {home} | ML베팅 원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%")
+                    i += 3
+                    continue
+        i += 1
 
     print(f"[{sport.upper()}] {len(games)}경기 수집")
     return games
