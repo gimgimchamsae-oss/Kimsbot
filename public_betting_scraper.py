@@ -108,7 +108,10 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
                         "updated_at":      datetime.now(KST).isoformat(),
                     }
                     games.append(game)
-                    print(f"  {away} vs {home} | ML베팅 원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%")
+                    print(f"  {away} vs {home} | ML원정{game['ml_bets_away']}% 홈{game['ml_bets_home']}%"
+                          f" | SP원정{game['sp_bets_away']}% 홈{game['sp_bets_home']}%"
+                          f" | OU오버{game['ou_bets_over']}% 언더{game['ou_bets_under']}%"
+                          f" | cells원정{len(away_cells)} 홈{len(home_cells)}")
                     i += 3
                     continue
         i += 1
