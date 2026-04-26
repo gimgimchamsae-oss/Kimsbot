@@ -123,7 +123,8 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
 
 
 async def main():
-    print("=== SCRAPER v5 (text_content fix) ===")
+    import os as _os
+    print(f"=== SCRAPER v5 | 실행경로: {_os.path.abspath(__file__)} ===")
     all_games = []
 
     async with async_playwright() as pw:
