@@ -123,6 +123,7 @@ async def scrape_sport(page, sport: str, url: str) -> list[dict]:
 
 
 async def main():
+    print("=== SCRAPER v5 (text_content fix) ===")
     all_games = []
 
     async with async_playwright() as pw:
