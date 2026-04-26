@@ -1,4 +1,4 @@
-"""HTML 구조 파악용 디버그 스크래퍼"""
+"""HTML 구조 파악용 디버그 스크래퍼 v2"""
 import asyncio
 from playwright.async_api import async_playwright
 
