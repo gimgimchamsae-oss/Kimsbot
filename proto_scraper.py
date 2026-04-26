@@ -336,15 +336,15 @@ def parse_odds(items: list) -> list[dict]:
         if bet_type == "winLose":
             total = (w or 0) + (d or 0) + (l or 0)
             if sport == 'soccer' and d is not None:
-                # 축구 승무패: w=홈승, d=무, l=원정승
-                g["ml_bets_home"] = _pct(w, total)
+                # 축구 승무패: w=원정승, d=무, l=홈승 (실제 확인값)
+                g["ml_bets_home"] = _pct(l, total)
                 g["ml_bets_draw"] = _pct(d, total)
-                g["ml_bets_away"] = _pct(l, total)
+                g["ml_bets_away"] = _pct(w, total)
             else:
-                # 야구/농구 승패: w=홈승, l=원정승
+                # 야구/농구 승패: w=원정승, l=홈승 (실제 확인값)
                 total2 = (w or 0) + (l or 0)
-                g["ml_bets_home"] = _pct(w, total2)
-                g["ml_bets_away"] = _pct(l, total2)
+                g["ml_bets_home"] = _pct(l, total2)
+                g["ml_bets_away"] = _pct(w, total2)
 
         elif bet_type == "overUnder":
             # w=언더, l=오버 (또는 반대 — 첫 실행 후 확인)
