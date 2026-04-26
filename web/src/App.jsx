@@ -319,9 +319,9 @@ function HistoryModal({ game, onClose }) {
         .from('snapshots')
         .select('ts,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
         .eq('matchup_id', game.matchup_id)
-        .order('id', { ascending: true })
-        .limit(500)
-      const rows = (res.data || []).filter(r => r.ml_home != null || r.sp_home != null || r.ou_over != null)
+        .order('id', { ascending: false })
+        .limit(300)
+      const rows = (res.data || []).filter(r => r.ml_home != null || r.sp_home != null || r.ou_over != null).reverse()
       const changed = rows.filter((r, i) => {
         if (i === 0) return true
         const p = rows[i - 1]
