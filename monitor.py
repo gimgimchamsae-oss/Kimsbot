@@ -19,7 +19,7 @@ LEAGUE_FLAG = {
     # 축구 리그
     "EPL": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Bundesliga": "🇩🇪", "Serie A": "🇮🇹",
     "Ligue 1": "🇫🇷", "La Liga": "🇪🇸",
-    "K리그1": "🇰🇷", "MLS": "🇺🇸",
+    "K리그1": "🇰🇷", "K리그2": "🇰🇷", "MLS": "🇺🇸", "A리그": "🇦🇺",
     # UEFA 대회
     "UCL": "🏆", "Europa": "🟠", "Conference": "🟢",
 }
