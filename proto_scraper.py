@@ -239,6 +239,88 @@ KR_SOCCER: dict[str, str] = {
     '뉴캐슬제츠': 'Newcastle Jets',
     # ── MLS (추가) ────────────────────────────────────
     'FC신시내티': 'FC Cincinnati', 'FC 신시내티': 'FC Cincinnati',
+    # ── 포르투갈 (Primeira Liga) ──────────────────────
+    'SL벤피카': 'Benfica', '벤피카': 'Benfica',
+    'FC포르투': 'Porto', '포르투': 'Porto',
+    '스포르팅CP': 'Sporting CP', '스포르팅 CP': 'Sporting CP', '스포르팅 리스본': 'Sporting CP',
+    'SC브라가': 'Braga', '브라가': 'Braga',
+    '비토리아기마랑이스': 'Vitoria Guimaraes', '스포르팅브라가': 'Braga',
+    # ── 터키 (Super Lig) ──────────────────────────────
+    '갈라타사라이': 'Galatasaray',
+    '페네르바흐체': 'Fenerbahce',
+    '베식타스': 'Besiktas',
+    '트라브존스포르': 'Trabzonspor',
+    '이스탄불바샥셰히르': 'Istanbul Basaksehir',
+    '카이세리스포르': 'Kayserispor',
+    # ── 스코틀랜드 (Scottish Premiership) ─────────────
+    '셀틱': 'Celtic',
+    '레인저스': 'Rangers',
+    '하트오브미들로디언': 'Heart of Midlothian', '하츠': 'Heart of Midlothian',
+    '하이버니언': 'Hibernian',
+    # ── 벨기에 (Pro League) ───────────────────────────
+    '클럽브뤼허': 'Club Brugge', '클럽 브뤼허': 'Club Brugge',
+    'RSC안데를레흐트': 'Anderlecht', '안데를레흐트': 'Anderlecht',
+    'KAA헨트': 'Gent', '헨트': 'Gent',
+    '유니온생질루아즈': 'Union Saint-Gilloise', '로열유니온생질루아즈': 'Union Saint-Gilloise',
+    'OH루벤': 'OH Leuven', '스탕다르드리에주': 'Standard Liege',
+    # ── 오스트리아 (Bundesliga) ───────────────────────
+    'FC레드불잘츠부르크': 'Red Bull Salzburg', '잘츠부르크': 'Red Bull Salzburg', 'RB잘츠부르크': 'Red Bull Salzburg',
+    'SK라피드비엔나': 'Rapid Vienna', '라피드비엔나': 'Rapid Vienna', '라피트빈': 'Rapid Vienna',
+    'LASK': 'LASK',
+    '슈투름그라츠': 'Sturm Graz',
+    # ── 스위스 (Super League) ─────────────────────────
+    'BSC영보이스': 'Young Boys', '영보이스': 'Young Boys',
+    'FC바젤': 'Basel', '바젤': 'Basel',
+    'FC취리히': 'FC Zurich', '취리히': 'FC Zurich',
+    '세르베트FC': 'Servette', '세르베트': 'Servette',
+    'FC루체른': 'Luzern', '루체른': 'Luzern',
+    # ── 체코 (Fortuna Liga) ───────────────────────────
+    'SK슬라비아프라하': 'Slavia Prague', '슬라비아프라하': 'Slavia Prague',
+    'AC스파르타프라하': 'Sparta Prague', '스파르타프라하': 'Sparta Prague',
+    'FC빅토리아플젠': 'Viktoria Plzen', '빅토리아플젠': 'Viktoria Plzen',
+    # ── 크로아티아 (HNL) ──────────────────────────────
+    'GNK디나모자그레브': 'Dinamo Zagreb', '디나모자그레브': 'Dinamo Zagreb',
+    'HNK하이두크스플리트': 'Hajduk Split', '하이두크스플리트': 'Hajduk Split',
+    # ── 세르비아 (SuperLiga) ──────────────────────────
+    'FK레드스타베오그라드': 'Red Star Belgrade', '레드스타베오그라드': 'Red Star Belgrade', '붉은별베오그라드': 'Red Star Belgrade',
+    'FK파르티잔': 'Partizan', '파르티잔': 'Partizan',
+    # ── 그리스 (Super League) ─────────────────────────
+    '올림피아코스': 'Olympiakos',
+    '파나티나이코스': 'Panathinaikos',
+    'PAOK': 'PAOK',
+    'AEK아테네': 'AEK Athens', 'AEK': 'AEK Athens',
+    # ── 우크라이나 (Premier League) ───────────────────
+    '샤흐타르도네츠크': 'Shakhtar Donetsk', '샤흐타르': 'Shakhtar Donetsk',
+    '디나모키이우': 'Dynamo Kyiv', '디나모키예프': 'Dynamo Kyiv',
+    # ── 덴마크 (Superliga) ────────────────────────────
+    'FC코펜하겐': 'FC Copenhagen', 'FCK코펜하겐': 'FC Copenhagen',
+    'FC미트윌란': 'Midtjylland', '미트윌란': 'Midtjylland',
+    'FC노르셸란': 'FC Nordsjaelland', '브뢴뷔IF': 'Brondby',
+    # ── 노르웨이 (Eliteserien) ────────────────────────
+    'FK몰데': 'Molde', '몰데': 'Molde',
+    '로센보르BK': 'Rosenborg', '로센보르': 'Rosenborg',
+    'FK보도글림트': 'Bodo/Glimt', '보도글림트': 'Bodo/Glimt',
+    'FK비킹': 'Viking', '빅킹FK': 'Viking',
+    # ── 스웨덴 (Allsvenskan) ──────────────────────────
+    '말뫼FF': 'Malmo FF', '말뫼': 'Malmo FF',
+    'IFK예테보리': 'IFK Gothenburg', '함마르뷔IF': 'Hammarby',
+    'AIK': 'AIK',
+    # ── 루마니아 (Liga 1) ─────────────────────────────
+    'CFR클루지': 'CFR Cluj', 'CFR클루즈나포카': 'CFR Cluj',
+    'FCSB': 'FCSB',
+    'FCU크라이오바1948': 'Universitatea Craiova', '라피드부쿠레슈티': 'Rapid Bucharest',
+    # ── 폴란드 (Ekstraklasa) ──────────────────────────
+    '레기아바르샤바': 'Legia Warsaw',
+    '레흐포즈난': 'Lech Poznan',
+    '라쿠프쳉스토호바': 'Rakow Czestochowa',
+    # ── 이스라엘 (Premier League) ─────────────────────
+    '마카비텔아비브': 'Maccabi Tel Aviv',
+    '마카비하이파': 'Maccabi Haifa',
+    '하포엘베르셰바': 'Hapoel Be\'er Sheva',
+    # ── 헝가리 (OTP Bank Liga) ────────────────────────
+    '페렌츠바로시': 'Ferencvaros', '페렌츠바로시TC': 'Ferencvaros',
+    # ── 슬로바키아 (Fortuna Liga) ─────────────────────
+    '슬로반브라티슬라바': 'Slovan Bratislava',
     # ── 기타 ──────────────────────────────────────────
     '알아흘리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
 }
