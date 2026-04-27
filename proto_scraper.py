@@ -108,6 +108,7 @@ KR_SOCCER: dict[str, str] = {
     'RC셀타데비고': 'Celta Vigo', '셀타데비고': 'Celta Vigo', '엘체': 'Elche',
     'RCD마요르카': 'Mallorca', '마요르카': 'Mallorca',
     '웨스트브로미치앨비언': 'West Bromwich Albion', '웨스트브로미치 앨비언': 'West Bromwich Albion',
+    'RCD에스파뇰': 'Espanyol', '레반테': 'Levante',
     # ── Bundesliga ───────────────────────────────────
     '바이에른뮌헨': 'Bayern Munich', '바이에른 뮌헨': 'Bayern Munich',
     '도르트문트': 'Borussia Dortmund', '바이어04레버쿠젠': 'Bayer Leverkusen',
@@ -123,12 +124,12 @@ KR_SOCCER: dict[str, str] = {
     '유벤투스': 'Juventus', 'AC밀란': 'AC Milan', 'AS로마': 'AS Roma',
     'SSC나폴리': 'Napoli', '인테르나치오날레밀라노': 'Inter Milan',
     '인테르나치오날레 밀라노': 'Inter Milan', '볼로냐': 'Bologna',
-    '아탈란타': 'Atalanta', '피오렌티나': 'Fiorentina',
-    'ACF피오렌티나': 'Fiorentina', '라치오': 'Lazio',
+    '아탈란타BC': 'Atalanta', '피오렌티나': 'Fiorentina',
+    'ACF피오렌티나': 'Fiorentina', 'SS라치오': 'Lazio',
     '토리노': 'Torino', '제노아': 'Genoa', '파르마': 'Parma',
     '엘라스베로나': 'Hellas Verona', 'US레체': 'Lecce',
     '코모1907': 'Como', 'US사수올로': 'Sassuolo',
-    'US크레모네세': 'Cremonese', '피사SC': 'Pisa',
+    'US크레모네세': 'Cremonese', '피사SC': 'Pisa', '우디네세': 'Udinese',
     # ── Ligue 1 ──────────────────────────────────────
     '파리생제르맹': 'Paris Saint-Germain', '파리 생제르맹': 'Paris Saint-Germain',
     '올랭피크드마르세유': 'Marseille', '올랭피크리옹': 'Lyon',
