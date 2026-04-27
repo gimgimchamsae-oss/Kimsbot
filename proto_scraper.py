@@ -128,7 +128,7 @@ KR_SOCCER: dict[str, str] = {
     'ACF피오렌티나': 'Fiorentina', 'SS라치오': 'Lazio',
     '토리노': 'Torino', '제노아': 'Genoa', '파르마': 'Parma',
     '엘라스베로나': 'Hellas Verona', 'US레체': 'Lecce',
-    '코모1907': 'Como', 'US사수올로': 'Sassuolo',
+    '코모1907': 'Como', 'US사수올로': 'Sassuolo', '칼리아리': 'Cagliari',
     'US크레모네세': 'Cremonese', '피사SC': 'Pisa', '우디네세': 'Udinese',
     # ── Ligue 1 ──────────────────────────────────────
     '파리생제르맹': 'Paris Saint-Germain', '파리 생제르맹': 'Paris Saint-Germain',
