@@ -282,7 +282,7 @@ function SharpBadge({ alerts, game }) {
 }
 
 // ③ SVG 차트
-function OddsChart({ snapshots, mktTab, isSoccer }) {
+function OddsChart({ snapshots, mktTab, hasDraw }) {
   const data = [...snapshots].reverse() // 시간순
   if (data.length < 2) return null
 
@@ -292,7 +292,7 @@ function OddsChart({ snapshots, mktTab, isSoccer }) {
     ? [
         { values: data.map(s => s.ml_home),  color: '#60a5fa', label: '홈' },
         { values: data.map(s => s.ml_away),  color: '#f87171', label: '원정' },
-        ...(isSoccer ? [{ values: data.map(s => s.ml_draw), color: '#9ca3af', label: '무' }] : []),
+        ...(hasDraw ? [{ values: data.map(s => s.ml_draw), color: '#9ca3af', label: '무' }] : []),
       ]
     : mktTab === 'sp'
     ? [
@@ -360,7 +360,7 @@ function HistoryModal({ game, onClose }) {
   const [snapshots, setSnapshots] = useState([])
   const [loading, setLoading]     = useState(true)
   const [mktTab, setMktTab]       = useState('ml')
-  const isSoccer = game.sport === 'soccer'
+  const hasDraw = game.ml_draw != null || (game.opening?.ml_draw != null)
 
   useEffect(() => {
     async function load() {
@@ -434,7 +434,7 @@ function HistoryModal({ game, onClose }) {
         ) : (
           <div className="overflow-y-auto flex-1">
             {/* ③ 차트 */}
-            <OddsChart snapshots={snapshots} mktTab={mktTab} isSoccer={isSoccer} />
+            <OddsChart snapshots={snapshots} mktTab={mktTab} hasDraw={hasDraw} />
 
             {/* 테이블 */}
             <table className="w-full text-sm">
@@ -443,7 +443,7 @@ function HistoryModal({ game, onClose }) {
                   <th className="text-left py-2 pr-2">시간</th>
                   {mktTab === 'ml' && <>
                     <th className="text-right py-2 px-2">홈</th>
-                    {isSoccer && <th className="text-right py-2 px-2">무</th>}
+                    {hasDraw && <th className="text-right py-2 px-2">무</th>}
                     <th className="text-right py-2 px-2">원정</th>
                   </>}
                   {mktTab === 'sp' && <>
@@ -466,7 +466,7 @@ function HistoryModal({ game, onClose }) {
                       <td className="py-2 pr-2 text-gray-400 whitespace-nowrap">{fmtTime(s.ts)}</td>
                       {mktTab === 'ml' && <>
                         <td className="text-right py-2 px-2">{diffCell(s.ml_home, prev?.ml_home)}</td>
-                        {isSoccer && <td className="text-right py-2 px-2">{diffCell(s.ml_draw, prev?.ml_draw)}</td>}
+                        {hasDraw && <td className="text-right py-2 px-2">{diffCell(s.ml_draw, prev?.ml_draw)}</td>}
                         <td className="text-right py-2 px-2">{diffCell(s.ml_away, prev?.ml_away)}</td>
                       </>}
                       {mktTab === 'sp' && <>
@@ -569,24 +569,24 @@ function reverseSignals(game) {
   const fmtPts  = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
   const isSoccer = game.sport === 'soccer'
   // 축구 승무패는 3-way → 임계값 낮춤
-  const mlThreshold = (isSoccer && mlDraw != null) ? REVERSE_THRESHOLD_3W : REVERSE_THRESHOLD
+  const mlThreshold = mlDraw != null ? REVERSE_THRESHOLD_3W : REVERSE_THRESHOLD
 
   // ── ML 역추세 ──────────────────────────────────────────────
   if (mlHome != null && mlAway != null) {
     if (mlHome >= mlThreshold) {
       const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
       if (diff != null && diff >= 0.05) {
-        signals.push({ market: 'ML', pick: isSoccer ? '무/원정' : '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
+        signals.push({ market: 'ML', pick: mlDraw != null ? '무/원정' : '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
       }
     }
     if (mlAway >= mlThreshold) {
       const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
       if (diff != null && diff >= 0.05) {
-        signals.push({ market: 'ML', pick: isSoccer ? '홈/무' : '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
+        signals.push({ market: 'ML', pick: mlDraw != null ? '홈/무' : '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
       }
     }
     // 축구 전용: 무 쏠림
-    if (isSoccer && mlDraw != null && mlDraw >= REVERSE_THRESHOLD_3W) {
+    if (mlDraw != null && mlDraw >= REVERSE_THRESHOLD_3W) {
       const diff = (op.ml_draw && game.ml_draw) ? game.ml_draw - op.ml_draw : null
       if (diff != null && diff >= 0.05) {
         signals.push({ market: 'ML', pick: '홈/원정', publicSide: `무 ${mlDraw}%`, reason: `무배당↑ +${diff.toFixed(2)}` })
@@ -733,7 +733,7 @@ function GameCard({ game, onClick }) {
       {/* 승패 */}
       <div className="flex gap-1.5 mb-1.5">
         <OddsTag label="홈" value={mlHome} openValue={game.ml_home != null ? op.ml_home : null} highlight={mlHomeHL} />
-        {isSoccer && mlDraw && <OddsTag label="무" value={mlDraw} openValue={game.ml_draw != null ? op.ml_draw : null} />}
+        {mlDraw && <OddsTag label="무" value={mlDraw} openValue={game.ml_draw != null ? op.ml_draw : null} />}
         <OddsTag label="원정" value={mlAway} openValue={game.ml_away != null ? op.ml_away : null} highlight={mlAwayHL} />
       </div>
 
@@ -817,8 +817,8 @@ export default function App() {
         pb.home?.toUpperCase() === homeAbbr.toUpperCase() &&
         pb.away?.toUpperCase() === awayAbbr.toUpperCase()
       )
-      if (!match && sport === 'mlb') {
-        console.log(`[PB] 매칭실패 ${game.away}@${game.home} → abbr=${awayAbbr}@${homeAbbr} sport=${sport}`)
+      if (!match) {
+        console.log(`[PB] 매칭실패 [${sport}] ${game.away}@${game.home} → abbr=${awayAbbr}@${homeAbbr}`)
       }
       return match || null
     }
