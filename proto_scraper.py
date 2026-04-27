@@ -1,6 +1,6 @@
 """
 previewn.com/odds/proto 구매율 스크래퍼 (Playwright + GraphQL 인터셉트)
-야구(MLB/KBO): ML + O/U
+야구(MLB/KBO/NPB): ML + O/U
 축구: 1X2 + O/U
 농구(NBA/KBL): ML + 핸디 + O/U
 """
@@ -57,7 +57,7 @@ KR_ABBREV = {
     '보스턴 셀틱스': 'BOS', '브루클린 네츠': 'BKN',
     '뉴욕 닉스': 'NYK', '필라델피아 76': 'PHI', '필라델피아 76어스': 'PHI',
     '토론토 랩터스': 'TOR', '골든스테이트 워리어스': 'GSW',
-    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL', 'LA 레이커스': 'LAL',
+    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL',
     '피닉스 선즈': 'PHX', '새크라멘토 킹스': 'SAC',
     '댈러스 매버릭스': 'DAL', '휴스턴 로케츠': 'HOU',
     '멤피스 그리즐리스': 'MEM', '뉴올리언스 펠리컨스': 'NOP',
@@ -92,22 +92,29 @@ KR_ABBREV = {
     '요코하마DeNA베이스타스': 'Yokohama Bay Stars',
     '요미우리 자이언츠': 'Yomiuri Giants', '요미우리자이언츠': 'Yomiuri Giants',
     '한신 타이거즈': 'Hanshin Tigers', '한신타이거즈': 'Hanshin Tigers',
+    '한신 타이거스': 'Hanshin Tigers',
     '후쿠오카 소프트뱅크 호크스': 'Fukuoka Softbank Hawks',
     '소프트뱅크 호크스': 'Fukuoka Softbank Hawks',
     '오릭스 버펄로스': 'Orix Buffaloes', '오릭스버펄로스': 'Orix Buffaloes',
     '주니치 드래곤즈': 'Chunichi Dragons', '주니치드래곤즈': 'Chunichi Dragons',
+    '주니치 드래건스': 'Chunichi Dragons',
     '히로시마 도요 카프': 'Hiroshima Toyo Carp',
     '히로시마 카프': 'Hiroshima Toyo Carp',
+    '히로시바 도요 카프': 'Hiroshima Toyo Carp',
     '도쿄 야쿠르트 스왈로즈': 'Tokyo Yakult Swallows',
     '야쿠르트 스왈로즈': 'Tokyo Yakult Swallows',
+    '야쿠르트 스왈로스': 'Tokyo Yakult Swallows',
     '홋카이도 닛폰햄 파이터스': 'Hokkaido Nippon-Ham Fighters',
     '니혼햄 파이터스': 'Hokkaido Nippon-Ham Fighters',
     '닛폰햄 파이터스': 'Hokkaido Nippon-Ham Fighters',
     '도호쿠 라쿠텐 골든이글스': 'Tohoku Rakuten Golden Eagles',
     '라쿠텐 이글스': 'Tohoku Rakuten Golden Eagles',
+    '라쿠텐 골든이글스': 'Tohoku Rakuten Golden Eagles',
     '사이타마 세이부 라이온즈': 'Saitama Seibu Lions',
     '세이부 라이온즈': 'Saitama Seibu Lions',
+    '세이부 라이온스': 'Saitama Seibu Lions',
     '지바 롯데 마린즈': 'Chiba Lotte Marines',
+    '지바 롯데 마린스': 'Chiba Lotte Marines',
 }
 
 # 한글 축구팀명 → 피나클 영문 팀명 (축구는 약자 없이 풀네임 매핑)
@@ -141,6 +148,7 @@ KR_SOCCER: dict[str, str] = {
     'RC셀타데비고': 'Celta Vigo', '셀타데비고': 'Celta Vigo', '엘체': 'Elche',
     'RCD마요르카': 'Mallorca', '마요르카': 'Mallorca',
     '웨스트브로미치앨비언': 'West Bromwich Albion', '웨스트브로미치 앨비언': 'West Bromwich Albion',
+    'RCD에스파뇰': 'Espanyol', '레반테': 'Levante',
     # ── Bundesliga ───────────────────────────────────
     '바이에른뮌헨': 'Bayern Munich', '바이에른 뮌헨': 'Bayern Munich',
     '도르트문트': 'Borussia Dortmund', '바이어04레버쿠젠': 'Bayer Leverkusen',
@@ -156,12 +164,12 @@ KR_SOCCER: dict[str, str] = {
     '유벤투스': 'Juventus', 'AC밀란': 'AC Milan', 'AS로마': 'AS Roma',
     'SSC나폴리': 'Napoli', '인테르나치오날레밀라노': 'Inter Milan',
     '인테르나치오날레 밀라노': 'Inter Milan', '볼로냐': 'Bologna',
-    '아탈란타': 'Atalanta', '피오렌티나': 'Fiorentina',
-    'ACF피오렌티나': 'Fiorentina', '라치오': 'Lazio',
+    '아탈란타BC': 'Atalanta', '피오렌티나': 'Fiorentina',
+    'ACF피오렌티나': 'Fiorentina', 'SS라치오': 'Lazio',
     '토리노': 'Torino', '제노아': 'Genoa', '파르마': 'Parma',
     '엘라스베로나': 'Hellas Verona', 'US레체': 'Lecce',
-    '코모1907': 'Como', 'US사수올로': 'Sassuolo',
-    'US크레모네세': 'Cremonese', '피사SC': 'Pisa',
+    '코모1907': 'Como', 'US사수올로': 'Sassuolo', '칼리아리': 'Cagliari',
+    'US크레모네세': 'Cremonese', '피사SC': 'Pisa', '우디네세': 'Udinese',
     # ── Ligue 1 ──────────────────────────────────────
     '파리생제르맹': 'Paris Saint-Germain', '파리 생제르맹': 'Paris Saint-Germain',
     '올랭피크드마르세유': 'Marseille', '올랭피크리옹': 'Lyon',
@@ -238,7 +246,6 @@ KR_SOCCER: dict[str, str] = {
     '요미우리': 'Yomiuri', '요미우리 자이언츠': 'Yomiuri Giants',
     '제프유나이티드지바': 'JEF United Chiba', '파지아노오카야마': 'Fagiano Okayama',
     '후지에다MYFC': 'Fujiedha MYFC',
-    # ── NPB (일본프로야구 - 이미 baseball로 처리) ────────
     # ── A-League (호주) ───────────────────────────────
     '멜버른빅토리': 'Melbourne Victory', '멜버른시티': 'Melbourne City',
     '시드니FC': 'Sydney FC', '웨스턴시드니원더러스': 'Western Sydney Wanderers',
@@ -249,7 +256,7 @@ KR_SOCCER: dict[str, str] = {
     # ── MLS (추가) ────────────────────────────────────
     'FC신시내티': 'FC Cincinnati', 'FC 신시내티': 'FC Cincinnati',
     # ── 기타 ──────────────────────────────────────────
-    '알아흘리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
+    '알아헐리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
 }
 
 
@@ -344,8 +351,8 @@ def parse_odds(items: list) -> list[dict]:
             else:
                 home_abbr = _abbrev(home)
                 away_abbr = _abbrev(away)
-                # MLB/NBA 미매핑 팀명 기록
-                if league in ('MLB', 'NBA'):
+                # MLB/NBA/KBO/NPB 미매핑 팀명 기록
+                if league in ('MLB', 'NBA', 'KBO', 'NPB'):
                     if not home_abbr:
                         unmatched.add(f"{league}:{_normalize(home)}")
                     if not away_abbr:
