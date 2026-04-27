@@ -1,6 +1,6 @@
 """
 previewn.com/odds/proto 구매율 스크래퍼 (Playwright + GraphQL 인터셉트)
-야구(MLB/KBO): ML + O/U
+야구(MLB/KBO/NPB): ML + O/U
 축구: 1X2 + O/U
 농구(NBA/KBL): ML + 핸디 + O/U
 """
@@ -27,7 +27,7 @@ BASEBALL_BBTYPES = {"mlb", "kbo", "npb", "baseball"}
 BASKETBALL_BBTYPES = {"nba", "kbl", "basketball"}
 # 나머지는 soccer
 
-# 한글 팀명 → 영문 약자 (MLB/NBA 매핑)
+# 한글 팀명 → 영문 약자 (MLB/NBA/KBO/NPB 매핑)
 # 팀명 정규화(normalize) 후 비교: 앞뒤공백 제거 + 연속공백→단일공백
 KR_ABBREV = {
     # ── MLB 단축명 ─────────────────────────────────────
@@ -57,7 +57,7 @@ KR_ABBREV = {
     '보스턴 셀틱스': 'BOS', '브루클린 네츠': 'BKN',
     '뉴욕 닉스': 'NYK', '필라델피아 76': 'PHI', '필라델피아 76어스': 'PHI',
     '토론토 랩터스': 'TOR', '골든스테이트 워리어스': 'GSW',
-    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL', 'LA 레이커스': 'LAL',
+    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL',
     '피닉스 선즈': 'PHX', '새크라멘토 킹스': 'SAC',
     '댈러스 매버릭스': 'DAL', '휴스턴 로케츠': 'HOU',
     '멤피스 그리즐리스': 'MEM', '뉴올리언스 펠리컨스': 'NOP',
@@ -75,6 +75,17 @@ KR_ABBREV = {
     '밀워키': 'MIL', '미네소타': 'MIN', '필라델피아': 'PHI',
     '시카고': 'CHI', '애틀랜타': 'ATL', '디트로이트': 'DET',
     '휴스턴': 'HOU', '토론토': 'TOR', '워싱턴': 'WSH',
+    # ── KBO (추가) ─────────────────────────────────────
+    '두산': 'DOO', '두산베어스': 'DOO', '삼성': 'SAM', '삼성라이온즈': 'SAM',
+    '키움': 'KIW', '키움히어로즈': 'KIW', '롯데': 'LOT', '롯데자이언츠': 'LOT',
+    '한화': 'HAN', '한화이글스': 'HAN', '기아': 'KIA', 'KIA': 'KIA',
+    'kt': 'KTW', 'KT': 'KTW', 'LG': 'LGT', '엘지': 'LGT',
+    'NC': 'NCD', '엔씨': 'NCD', 'SSG': 'SSG', '쓱': 'SSG',
+    # ── NPB (추가) ─────────────────────────────────────
+    '요미우리': 'YOM', '요코H': 'YOK', '요코하마': 'YOK', '한신': 'HAN',
+    '히로카프': 'HIR', '히로시마': 'HIR', '주니치': 'CHU', '야쿠르트': 'YAK',
+    '오릭스': 'ORI', '지바롯데': 'LOT', '치바롯데': 'LOT', '소프트B': 'SOFT',
+    '소프트뱅크': 'SOFT', '라쿠텐': 'RAK', '세이부': 'SEI', '니혼햄': 'NIH',
 }
 
 # 한글 축구팀명 → 피나클 영문 팀명 (축구는 약자 없이 풀네임 매핑)
@@ -206,7 +217,6 @@ KR_SOCCER: dict[str, str] = {
     '요미우리': 'Yomiuri', '요미우리 자이언츠': 'Yomiuri Giants',
     '제프유나이티드지바': 'JEF United Chiba', '파지아노오카야마': 'Fagiano Okayama',
     '후지에다MYFC': 'Fujiedha MYFC',
-    # ── NPB (일본프로야구 - 이미 baseball로 처리) ────────
     # ── A-League (호주) ───────────────────────────────
     '멜버른빅토리': 'Melbourne Victory', '멜버른시티': 'Melbourne City',
     '시드니FC': 'Sydney FC', '웨스턴시드니원더러스': 'Western Sydney Wanderers',
@@ -217,7 +227,7 @@ KR_SOCCER: dict[str, str] = {
     # ── MLS (추가) ────────────────────────────────────
     'FC신시내티': 'FC Cincinnati', 'FC 신시내티': 'FC Cincinnati',
     # ── 기타 ──────────────────────────────────────────
-    '알아흘리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
+    '알아헐리사우디': 'Al-Ahli', 'FSV마인츠05': 'Mainz 05',
 }
 
 
@@ -312,8 +322,8 @@ def parse_odds(items: list) -> list[dict]:
             else:
                 home_abbr = _abbrev(home)
                 away_abbr = _abbrev(away)
-                # MLB/NBA 미매핑 팀명 기록
-                if league in ('MLB', 'NBA'):
+                # MLB/NBA/KBO/NPB 미매핑 팀명 기록
+                if league in ('MLB', 'NBA', 'KBO', 'NPB'):
                     if not home_abbr:
                         unmatched.add(f"{league}:{_normalize(home)}")
                     if not away_abbr:
