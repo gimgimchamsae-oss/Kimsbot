@@ -27,7 +27,7 @@ BASEBALL_BBTYPES = {"mlb", "kbo", "npb", "baseball"}
 BASKETBALL_BBTYPES = {"nba", "kbl", "basketball"}
 # 나머지는 soccer
 
-# 한글 팀명 → 영문 약자 (MLB/NBA 매핑)
+# 한글 팀명 → 영문 약자 or 피나클 영문 풀네임 (MLB/NBA는 약자, KBO/NPB는 풀네임)
 # 팀명 정규화(normalize) 후 비교: 앞뒤공백 제거 + 연속공백→단일공백
 KR_ABBREV = {
     # ── MLB 단축명 ─────────────────────────────────────
@@ -57,7 +57,7 @@ KR_ABBREV = {
     '보스턴 셀틱스': 'BOS', '브루클린 네츠': 'BKN',
     '뉴욕 닉스': 'NYK', '필라델피아 76': 'PHI', '필라델피아 76어스': 'PHI',
     '토론토 랩터스': 'TOR', '골든스테이트 워리어스': 'GSW',
-    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL', 'LA 레이커스': 'LAL',
+    'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL',
     '피닉스 선즈': 'PHX', '새크라멘토 킹스': 'SAC',
     '댈러스 매버릭스': 'DAL', '휴스턴 로케츠': 'HOU',
     '멤피스 그리즐리스': 'MEM', '뉴올리언스 펠리컨스': 'NOP',
@@ -75,6 +75,30 @@ KR_ABBREV = {
     '밀워키': 'MIL', '미네소타': 'MIN', '필라델피아': 'PHI',
     '시카고': 'CHI', '애틀랜타': 'ATL', '디트로이트': 'DET',
     '휴스턴': 'HOU', '토론토': 'TOR', '워싱턴': 'WSH',
+    # ── KBO ────────────────────────────────────────────────────
+    '삼성 라이온즈': 'Samsung Lions', '삼성라이온즈': 'Samsung Lions',
+    'LG 트윈스': 'LG Twins', 'LG트윈스': 'LG Twins',
+    '두산 베어스': 'Doosan Bears', '두산베어스': 'Doosan Bears',
+    'KIA 타이거즈': 'KIA Tigers', 'KIA타이거즈': 'KIA Tigers',
+    'SSG 랜더스': 'SSG Landers', 'SSG랜더스': 'SSG Landers',
+    'NC 다이노스': 'NC Dinos', 'NC다이노스': 'NC Dinos',
+    '롯데 자이언츠': 'Lotte Giants', '롯데자이언츠': 'Lotte Giants',
+    '키움 히어로즈': 'Kiwoom Heroes', '키움히어로즈': 'Kiwoom Heroes',
+    'KT 위즈': 'KT Wiz', 'KT위즈': 'KT Wiz',
+    '한화 이글스': 'Hanwha Eagles', '한화이글스': 'Hanwha Eagles',
+    # ── NPB ────────────────────────────────────────────────────
+    '요미우리 자이언츠': 'Yomiuri Giants', '요미우리자이언츠': 'Yomiuri Giants',
+    '한신 타이거즈': 'Hanshin Tigers', '한신타이거즈': 'Hanshin Tigers',
+    '히로시마 카프': 'Hiroshima Carp', '히로시마카프': 'Hiroshima Carp', '히로시마 도요 카프': 'Hiroshima Carp',
+    '요코하마 DeNA 베이스타즈': 'DeNA BayStars', 'DeNA 베이스타즈': 'DeNA BayStars', '요코하마DeNA베이스타즈': 'DeNA BayStars',
+    '도쿄 야쿠르트 스왈로스': 'Yakult Swallows', '야쿠르트 스왈로스': 'Yakult Swallows', '야쿠르트스왈로스': 'Yakult Swallows',
+    '주니치 드래곤즈': 'Chunichi Dragons', '주니치드래곤즈': 'Chunichi Dragons',
+    '후쿠오카 소프트뱅크 호크스': 'SoftBank Hawks', '소프트뱅크 호크스': 'SoftBank Hawks', '소프트뱅크호크스': 'SoftBank Hawks',
+    '사이타마 세이부 라이온즈': 'Seibu Lions', '세이부 라이온즈': 'Seibu Lions', '세이부라이온즈': 'Seibu Lions',
+    '오릭스 버팔로즈': 'Orix Buffaloes', '오릭스버팔로즈': 'Orix Buffaloes',
+    '도호쿠 라쿠텐 골든이글스': 'Rakuten Eagles', '라쿠텐 골든이글스': 'Rakuten Eagles', '라쿠텐골든이글스': 'Rakuten Eagles',
+    '지바 롯데 마린즈': 'Lotte Marines', '롯데 마린즈': 'Lotte Marines', '롯데마린즈': 'Lotte Marines',
+    '홋카이도 닛폰햄 파이터즈': 'Nippon-Ham Fighters', '닛폰햄 파이터즈': 'Nippon-Ham Fighters', '닛폰햄파이터즈': 'Nippon-Ham Fighters',
 }
 
 # 한글 축구팀명 → 피나클 영문 팀명 (축구는 약자 없이 풀네임 매핑)
