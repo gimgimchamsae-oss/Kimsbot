@@ -26,7 +26,7 @@ const TEAM_ABBREV = {
   'Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX',
   'Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS',
   'Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WSH',
-  // NHL
+  // NHL (공식 팀명)
   'Anaheim Ducks':'ANA','Arizona Coyotes':'ARI','Boston Bruins':'BOS',
   'Buffalo Sabres':'BUF','Calgary Flames':'CGY','Carolina Hurricanes':'CAR',
   'Chicago Blackhawks':'CHI','Colorado Avalanche':'COL','Columbus Blue Jackets':'CBJ',
@@ -38,6 +38,17 @@ const TEAM_ABBREV = {
   'Seattle Kraken':'SEA','St. Louis Blues':'STL','Tampa Bay Lightning':'TBL',
   'Toronto Maple Leafs':'TOR','Utah Hockey Club':'UTA','Vancouver Canucks':'VAN',
   'Vegas Golden Knights':'VGK','Washington Capitals':'WSH','Winnipeg Jets':'WPG',
+  // NHL 변형 (Pinnacle API 표기 차이 대응)
+  'Montréal Canadiens':'MTL',
+  'St Louis Blues':'STL',
+  'Utah HC':'UTA',
+  'LA Kings':'LAK',
+  'NJ Devils':'NJD',
+  'NY Rangers':'NYR',
+  'NY Islanders':'NYI',
+  'TB Lightning':'TBL',
+  'San Jose':'SJS',
+  'Columbus':'CBJ',
 }
 
 function isInPast(startsAt) {
@@ -662,13 +673,16 @@ export default function App() {
       if (!['mlb','nba','nhl'].includes(sport)) return null
       const homeAbbr = TEAM_ABBREV[game.home] || ''
       const awayAbbr = TEAM_ABBREV[game.away] || ''
-      if (!homeAbbr || !awayAbbr) return null
+      if (!homeAbbr || !awayAbbr) {
+        console.log(`[PB] ABBREV 없음 ${game.away}@${game.home} sport=${sport}`)
+        return null
+      }
       const match = pbData.find(pb =>
         pb.sport === sport &&
         pb.home?.toUpperCase() === homeAbbr.toUpperCase() &&
         pb.away?.toUpperCase() === awayAbbr.toUpperCase()
       )
-      if (!match && sport === 'mlb') {
+      if (!match) {
         console.log(`[PB] 매칭실패 ${game.away}@${game.home} → abbr=${awayAbbr}@${homeAbbr} sport=${sport}`)
       }
       return match || null
