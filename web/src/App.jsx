@@ -680,28 +680,29 @@ export default function App() {
 
     function findProto(game) {
       const sportMap = { baseball: 'baseball', basketball: 'basketball', soccer: 'soccer' }
-      const sport = sportMap[game.sport]
-      if (!sport) return null
+      const protoSport = sportMap[game.sport]
+      if (!protoSport) return null
 
-      if (sport === 'soccer') {
-        // 축구: proto의 home_abbr/away_abbr (영문 팀명) vs Pinnacle game.home/game.away
-        const norm = s => (s || '').trim().toLowerCase()
-        return protoData.find(p =>
-          p.sport === 'soccer' &&
-          norm(p.home_abbr) === norm(game.home) &&
-          norm(p.away_abbr) === norm(game.away)
-        ) || null
-      } else {
-        // 야구/농구: proto의 home_abbr/away_abbr (예: 'LAD') vs TEAM_ABBREV[game.home]
+      const norm = s => (s || '').trim().toLowerCase()
+
+      // MLB/NBA: TEAM_ABBREV 약자로 매칭
+      if ((game.league === 'MLB') || (game.league === 'NBA')) {
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
         if (!homeAbbr || !awayAbbr) return null
         return protoData.find(p =>
-          p.sport === sport &&
+          p.sport === protoSport &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
           p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
         ) || null
       }
+
+      // KBO/NPB/KBL/soccer: proto.home_abbr = 피나클 영문 팀명으로 직접 비교
+      return protoData.find(p =>
+        p.sport === protoSport &&
+        norm(p.home_abbr) === norm(game.home) &&
+        norm(p.away_abbr) === norm(game.away)
+      ) || null
     }
 
     const merged = (linesRes.data || []).map(g => ({
