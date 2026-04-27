@@ -80,14 +80,14 @@ KR_ABBREV = {
     '키움 히어로즈': 'Kiwoom Heroes', '롯데 자이언츠': 'Lotte Giants',
     '한화 이글스': 'Hanwha Eagles', 'KIA 타이거즈': 'Kia Tigers',
     'KT 위즈': 'KT Wiz', 'LG 트윈스': 'LG Twins',
-    'NC 다이노스': 'NC Dinos', 'SSG 랜더스': 'SSG Landers'
+    'NC 다이노스': 'NC Dinos', 'SSG 랜더스': 'SSG Landers',
     # ── NPB (추가) ─────────────────────────────────────
     '요미우리 자이언츠': 'Yomiuri Giants', '요코하마 DeNA 베이스타스': 'Yokohama Bay Stars',
     '한신 타이거스': 'Hanshin Tigers', '히로시바 도요 카프': 'Hiroshima Toyo Carp',
     '주니치 드래건스': 'Chunichi Dragons', '야쿠르트 스왈로스': 'Tokyo Yakult Swallows',
     '오릭스 버펄로스': 'Orix Buffaloes', '지바 롯데 마린스': 'Chiba Lotte Marines', 
     '소프트뱅크 호크스': 'Fukuoka Softbank Hawks', '라쿠텐 골든이글스': 'Tohoku Rakuten Golden Eagles',
-    '세이부 라이온스': 'Saitama Seibu Lions', '니혼햄 파이터스': 'Hokkaido Nippon-Ham Fighters'
+    '세이부 라이온스': 'Saitama Seibu Lions', '니혼햄 파이터스': 'Hokkaido Nippon-Ham Fighters',
 
  }
    
