@@ -76,16 +76,19 @@ KR_ABBREV = {
     '시카고': 'CHI', '애틀랜타': 'ATL', '디트로이트': 'DET',
     '휴스턴': 'HOU', '토론토': 'TOR', '워싱턴': 'WSH',
     # ── KBO (추가) ─────────────────────────────────────
-    '두산': 'DOO', '두산베어스': 'DOO', '삼성': 'SAM', '삼성라이온즈': 'SAM',
-    '키움': 'KIW', '키움히어로즈': 'KIW', '롯데': 'LOT', '롯데자이언츠': 'LOT',
-    '한화': 'HAN', '한화이글스': 'HAN', '기아': 'KIA', 'KIA': 'KIA',
-    'kt': 'KTW', 'KT': 'KTW', 'LG': 'LGT', '엘지': 'LGT',
-    'NC': 'NCD', '엔씨': 'NCD', 'SSG': 'SSG', '쓱': 'SSG',
+    '두산': 'DOO', '두산 베어스': 'Doosan Bears', '삼성': 'Samsung Lions', '삼성 라이온즈': 'Samsung Lions',
+    '키움': 'KIW', '키움 히어로즈': 'Kiwoom Heroes', '롯데': 'LOT', '롯데 자이언츠': 'Lotte Giants',
+    '한화': 'HAN', '한화이글스': 'Hanwha Eagles', '기아': 'KIA', 'KIA 타이거즈': 'Kia Tigers',
+    'kt': 'KTW', 'KT 위즈': 'KT Wiz', 'LG 트윈스': 'LG Twins', '엘지': 'LG T',
+    'NC 다이노스': 'NC Dinos', '엔씨': 'NC Dinos', 'SSG 랜더스': 'SSG Landers', '쓱': 'SSG',
     # ── NPB (추가) ─────────────────────────────────────
-    '요미우리': 'YOM', '요코H': 'YOK', '요코하마': 'YOK', '한신': 'HAN',
-    '히로카프': 'HIR', '히로시마': 'HIR', '주니치': 'CHU', '야쿠르트': 'YAK',
-    '오릭스': 'ORI', '지바롯데': 'LOT', '치바롯데': 'LOT', '소프트B': 'SOFT',
-    '소프트뱅크': 'SOFT', '라쿠텐': 'RAK', '세이부': 'SEI', '니혼햄': 'NIH',
+    '요미우리 자이언츠': 'Yomiuri Giants', '요코H': 'YOK', '요코하마 DeNA 베이스타스': 'Yokohama Bay Stars',
+    '한신 타이거스': 'Hanshin Tigers',
+    '히로시바 도요 카프': 'Hiroshima Toyo Carp', '히로시마': 'HIR', '주니치 드래건스': 'Chunichi Dragons', 
+    '야쿠르트 스왈로스': 'Tokyo Yakult Swallows',
+    '오릭스 버펄로스': 'Orix Buffaloes', '지바롯데': 'LOT', '지바 롯데 마린스': 'Chiba Lotte Marines', 
+    '소프트뱅크 호크스': 'Fukuoka Softbank Hawks', '라쿠텐 골든이글스': 'Tohoku Rakuten Golden Eagles',
+    '세이부 라이온스': 'Saitama Seibu Lions', '니혼햄 파이터스': 'Hokkaido Nippon-Ham Fighters',
 }
 
 # 한글 축구팀명 → 피나클 영문 팀명 (축구는 약자 없이 풀네임 매핑)
