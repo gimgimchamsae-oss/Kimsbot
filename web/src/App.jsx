@@ -568,6 +568,17 @@ function GameCard({ game, onClick }) {
   const [spHomeHL, spAwayHL]  = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
   const [ouOverHL, ouUnderHL] = dropHighlight(game.ou_over, op.ou_over, game.ou_under, op.ou_under)
 
+  // 지난경기: 현재 배당 없으면 오프닝으로 폴백 (openValue는 숨김)
+  const mlHome  = game.ml_home  ?? op.ml_home
+  const mlAway  = game.ml_away  ?? op.ml_away
+  const mlDraw  = game.ml_draw  ?? op.ml_draw
+  const spHome  = game.sp_home  ?? op.sp_home
+  const spAway  = game.sp_away  ?? op.sp_away
+  const ouOver  = game.ou_over  ?? op.ou_over
+  const ouUnder = game.ou_under ?? op.ou_under
+  const spPts   = game.sp_pts   ?? op.sp_pts
+  const ouPts   = game.ou_pts   ?? op.ou_pts
+
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-3 border border-gray-700 cursor-pointer active:opacity-80" onClick={onClick}>
       {/* 리그 */}
@@ -596,24 +607,24 @@ function GameCard({ game, onClick }) {
 
       {/* 승패 */}
       <div className="flex gap-1.5 mb-1.5">
-        <OddsTag label="홈" value={game.ml_home} openValue={op.ml_home} highlight={mlHomeHL} />
-        {isSoccer && game.ml_draw && <OddsTag label="무" value={game.ml_draw} openValue={op.ml_draw} />}
-        <OddsTag label="원정" value={game.ml_away} openValue={op.ml_away} highlight={mlAwayHL} />
+        <OddsTag label="홈" value={mlHome} openValue={game.ml_home != null ? op.ml_home : null} highlight={mlHomeHL} />
+        {isSoccer && mlDraw && <OddsTag label="무" value={mlDraw} openValue={game.ml_draw != null ? op.ml_draw : null} />}
+        <OddsTag label="원정" value={mlAway} openValue={game.ml_away != null ? op.ml_away : null} highlight={mlAwayHL} />
       </div>
 
       {/* 핸디 */}
-      {game.sp_pts != null && (
+      {spPts != null && (
         <div className="flex gap-1.5 mb-1.5">
-          <OddsTag label={`홈 ${game.sp_pts >= 0 ? '+' : ''}${game.sp_pts}`} value={game.sp_home} openValue={op.sp_home} highlight={spHomeHL} />
-          <OddsTag label={`원정 ${(-game.sp_pts) >= 0 ? '+' : ''}${-game.sp_pts}`} value={game.sp_away} openValue={op.sp_away} highlight={spAwayHL} />
+          <OddsTag label={`홈 ${spPts >= 0 ? '+' : ''}${spPts}`} value={spHome} openValue={game.sp_home != null ? op.sp_home : null} highlight={spHomeHL} />
+          <OddsTag label={`원정 ${(-spPts) >= 0 ? '+' : ''}${-spPts}`} value={spAway} openValue={game.sp_away != null ? op.sp_away : null} highlight={spAwayHL} />
         </div>
       )}
 
       {/* O/U */}
-      {game.ou_pts != null && (
+      {ouPts != null && (
         <div className="flex gap-1.5">
-          <OddsTag label={`오버 ${game.ou_pts}`} value={game.ou_over} openValue={op.ou_over} highlight={ouOverHL} />
-          <OddsTag label={`언더 ${game.ou_pts}`} value={game.ou_under} openValue={op.ou_under} highlight={ouUnderHL} />
+          <OddsTag label={`오버 ${ouPts}`} value={ouOver} openValue={game.ou_over != null ? op.ou_over : null} highlight={ouOverHL} />
+          <OddsTag label={`언더 ${ouPts}`} value={ouUnder} openValue={game.ou_under != null ? op.ou_under : null} highlight={ouUnderHL} />
         </div>
       )}
 
