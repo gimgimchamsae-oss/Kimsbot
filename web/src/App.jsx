@@ -716,7 +716,9 @@ export default function App() {
       ) || null
     }
 
-    const merged = (linesRes.data || []).map(g => ({
+    const merged = (linesRes.data || []).filter(g =>
+      !/(Games\))/i.test(g.home || '') && !/(Games\))/i.test(g.away || '')
+    ).map(g => ({
       ...g,
       opening:      openingsMap[g.matchup_id] || null,
       recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
