@@ -66,6 +66,13 @@ const ALL_LEAGUES = [
   'NBA', 'NHL',
 ]
 
+const SPORT_GROUPS = [
+  { key: 'baseball',   label: '⚾ 야구', leagues: ['MLB', 'KBO', 'NPB'] },
+  { key: 'soccer',     label: '⚽ 축구', leagues: ['EPL', 'Bundesliga', 'Serie A', 'Ligue 1', 'La Liga', 'K리그1', 'K리그2', 'MLS', 'A리그', 'J리그', 'UCL', 'Europa', 'Conference'] },
+  { key: 'basketball', label: '🏀 농구', leagues: ['NBA'] },
+  { key: 'hockey',     label: '🏒 하키', leagues: ['NHL'] },
+]
+
 function minsAgo(ts) {
   if (!ts) return null
   try {
@@ -729,13 +736,13 @@ export default function App() {
       return true
     }
     if (past) return false
-    if (tab !== 'all' && g.league !== tab) return false
+    if (tab !== 'all' && g.sport !== tab) return false
     return true
   })
   const sorted = [...filtered].sort((a, b) =>
     isPastView ? (b.starts_at > a.starts_at ? 1 : -1) : (a.starts_at > b.starts_at ? 1 : -1)
   )
-  const activeLegues = ALL_LEAGUES.filter(l => games.some(g => g.league === l && !isInPast(g.starts_at)))
+  const activeSports = SPORT_GROUPS.filter(sg => games.some(g => sg.leagues.includes(g.league) && !isInPast(g.starts_at)))
   const pastLeagues  = ALL_LEAGUES.filter(l => games.some(g => g.league === l && isInPast(g.starts_at)))
 
   return (
@@ -752,9 +759,9 @@ export default function App() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button onClick={() => setTab('all')} className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors ${tab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>전체</button>
-          {activeLegues.map(l => (
-            <button key={l} onClick={() => setTab(l)} className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors ${tab === l ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
-              {LEAGUE_FLAGS[l]} {l}
+          {activeSports.map(sg => (
+            <button key={sg.key} onClick={() => setTab(sg.key)} className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors ${tab === sg.key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>
+              {sg.label}
             </button>
           ))}
           <button onClick={() => { setTab('past'); setPastLeague('all') }} className={`px-4 py-2 rounded-full text-base font-semibold whitespace-nowrap transition-colors ${tab === 'past' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}>🕐 지난경기</button>
