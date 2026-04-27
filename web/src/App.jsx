@@ -682,25 +682,33 @@ export default function App() {
       const sportMap = { baseball: 'baseball', basketball: 'basketball', soccer: 'soccer' }
       const sport = sportMap[game.sport]
       if (!sport) return null
+      const norm = s => (s || '').trim().toLowerCase()
 
       if (sport === 'soccer') {
         // 축구: proto의 home_abbr/away_abbr (영문 팀명) vs Pinnacle game.home/game.away
-        const norm = s => (s || '').trim().toLowerCase()
         return protoData.find(p =>
           p.sport === 'soccer' &&
           norm(p.home_abbr) === norm(game.home) &&
           norm(p.away_abbr) === norm(game.away)
         ) || null
       } else {
-        // 야구/농구: proto의 home_abbr/away_abbr (예: 'LAD') vs TEAM_ABBREV[game.home]
+        // MLB/NBA: TEAM_ABBREV 약자 매칭
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
-        if (!homeAbbr || !awayAbbr) return null
-        return protoData.find(p =>
-          p.sport === sport &&
-          p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
-          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
-        ) || null
+        if (homeAbbr && awayAbbr) {
+          return protoData.find(p =>
+            p.sport === sport &&
+            p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
+            p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
+          ) || null
+        } else {
+          // KBO/NPB: home_abbr에 Pinnacle 영문 풀네임 저장됨
+          return protoData.find(p =>
+            p.sport === sport &&
+            norm(p.home_abbr) === norm(game.home) &&
+            norm(p.away_abbr) === norm(game.away)
+          ) || null
+        }
       }
     }
 
