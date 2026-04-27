@@ -225,11 +225,14 @@ function OddsTag({ label, value, openValue, highlight }) {
       <span className={`text-base font-bold leading-tight ${highlight ? 'text-white' : 'text-gray-100'}`}>
         {value?.toFixed(2) ?? '-'}
       </span>
-      {/* ② 오프닝 대비 낙폭 — 더 크고 선명하게 */}
+      {/* 오프닝 대비 등락 */}
       {hasDiff ? (
-        <span className={`text-sm font-bold ${diff > 0 ? 'text-green-400' : 'text-red-300'}`}>
-          {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
-        </span>
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-xs text-gray-400">오픈 {openValue.toFixed(2)}</span>
+          <span className={`text-sm font-bold ${diff > 0 ? 'text-green-400' : 'text-red-300'}`}>
+            {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)}
+          </span>
+        </div>
       ) : <span className="text-sm opacity-0">-</span>}
     </div>
   )
