@@ -78,7 +78,7 @@ KR_ABBREV = {
     # ── KBO (피나클 영문 풀네임) ──────────────────────
     '두산 베어스': 'Doosan Bears', '두산베어스': 'Doosan Bears',
     '한화 이글스': 'Hanwha Eagles', '한화이글스': 'Hanwha Eagles',
-    'KT 위즈': 'KT Wiz', 'kt wiz': 'KT Wiz', 'KT위즈': 'KT Wiz',
+    'KT 위즈': 'KT Wiz', 'kt wiz': 'KT Wiz', 'KT위즈': 'KT Wiz', 'kt 위즈': 'KT Wiz',
     'KIA 타이거즈': 'Kia Tigers', 'KIA타이거즈': 'Kia Tigers',
     '기아 타이거즈': 'Kia Tigers',
     '키움 히어로즈': 'Kiwoom Heroes', '키움히어로즈': 'Kiwoom Heroes',
@@ -231,6 +231,9 @@ KR_SOCCER: dict[str, str] = {
     '휴스턴다이너모FC': 'Houston Dynamo', 'CF몽레알': 'CF Montreal',
     '필라델피아유니언': 'Philadelphia Union',
     # ── J리그 ─────────────────────────────────────────
+    '교토상가FC': 'Kyoto Sanga FC', '교토 상가 FC': 'Kyoto Sanga FC',
+    '도쿄베르디': 'Tokyo Verdy', '도쿄 베르디': 'Tokyo Verdy',
+    '비셀고베': 'Vissel Kobe', '비셀 고베': 'Vissel Kobe',
     '요코하마F마리노스': 'Yokohama F Marinos', '가와사키프론탈레': 'Kawasaki Frontale',
     '가시마앤틀러스': 'Kashima Antlers', '감바오사카': 'Gamba Osaka',
     '우라와레드다이아몬즈': 'Urawa Reds', '나고야그램퍼스': 'Nagoya Grampus',
