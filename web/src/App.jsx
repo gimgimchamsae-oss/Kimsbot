@@ -680,19 +680,15 @@ function GameCard({ game, onClick }) {
   const op       = game.opening || {}
   const signals  = sharpSignals(game)
 
-  function dropHighlight(curA, openA, curB, openB) {
-    if (curA == null || openA == null || curB == null || openB == null) return [null, null]
-    const dA = curA - openA, dB = curB - openB
-    if (dA === dB) return [null, null]
-    const favA = dA < dB
-    const drop = favA ? Math.abs(dA) : Math.abs(dB)
-    const color = drop >= 0.10 ? 'red' : 'blue'
-    return favA ? [color, null] : [null, color]
-  }
-
-  const [mlHomeHL, mlAwayHL]  = dropHighlight(game.ml_home, op.ml_home, game.ml_away, op.ml_away)
-  const [spHomeHL, spAwayHL]  = dropHighlight(game.sp_home, op.sp_home, game.sp_away, op.sp_away)
-  const [ouOverHL, ouUnderHL] = dropHighlight(game.ou_over, op.ou_over, game.ou_under, op.ou_under)
+  // 역추세 시그널 기반 하이라이트
+  const revSigs = reverseSignals(game)
+  const hasPick = (market, side) => revSigs.some(s => s.market === market && s.pick.includes(side))
+  const mlHomeHL  = hasPick('ML', '홈') ? 'blue' : null
+  const mlAwayHL  = hasPick('ML', '원정') ? 'blue' : null
+  const spHomeHL  = hasPick('핸디', '홈') ? 'blue' : null
+  const spAwayHL  = hasPick('핸디', '원정') ? 'blue' : null
+  const ouOverHL  = hasPick('O/U', '오버') ? 'blue' : null
+  const ouUnderHL = hasPick('O/U', '언더') ? 'blue' : null
 
   // 지난경기: 현재 배당 없으면 오프닝으로 폴백 (openValue는 숨김)
   const mlHome  = game.ml_home  ?? op.ml_home
