@@ -700,11 +700,8 @@ function GameCard({ game, onClick }) {
         <span className="text-white font-bold text-xl">{game.away}</span>
       </div>
 
-      {/* 샤프 시그널 */}
+      {/* 기준점 변동 */}
       <SharpBadge alerts={game.recentAlerts} game={game} />
-
-      {/* 마켓별 샤프 점수 */}
-      {signals.length > 0 && <div className="mb-2"><SharpSignals signals={signals} /></div>}
 
       {/* 경기시간 + 기준 */}
       <div className="mb-3 flex items-center justify-between">
