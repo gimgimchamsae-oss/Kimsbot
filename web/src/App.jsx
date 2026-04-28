@@ -250,34 +250,19 @@ function SharpBadge({ alerts, game }) {
   if (!alerts || alerts.length === 0) return null
   const op = game.opening || {}
   const fmtPts = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
+  const badges = []
+  if (alerts.some(a => a.type === 'line_sp') && op.sp_pts != null && game.sp_pts != null && op.sp_pts !== game.sp_pts)
+    badges.push({ key: 'line_sp', label: '🔄 핸디', detail: `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}` })
+  if (alerts.some(a => a.type === 'line_ou') && op.ou_pts != null && game.ou_pts != null && op.ou_pts !== game.ou_pts)
+    badges.push({ key: 'line_ou', label: '🔄 O/U', detail: `${op.ou_pts}→${game.ou_pts}` })
+  if (badges.length === 0) return null
   return (
     <div className="flex gap-1 flex-wrap mb-2">
-      {alerts.map(({ type, threshold }) => {
-        let label, detail
-        switch (type) {
-          case 'instant_ml': label = '⚡ML'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
-          case 'instant_sp': label = '⚡핸디'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
-          case 'instant_ou': label = '⚡O/U'; detail = threshold ? parseFloat(threshold).toFixed(2) : ''; break
-          case 'line_sp':
-            if (op.sp_pts == null || game.sp_pts == null || op.sp_pts === game.sp_pts) return null
-            label = '🔄핸디'; detail = `${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`; break
-          case 'line_ou':
-            if (op.ou_pts == null || game.ou_pts == null || op.ou_pts === game.ou_pts) return null
-            label = '🔄O/U'; detail = `${op.ou_pts}→${game.ou_pts}`; break
-          case 'streak_ml_home':  label = '📉홈 ML';    detail = threshold ? `${threshold}연속` : ''; break
-          case 'streak_ml_away':  label = '📉원정 ML';  detail = threshold ? `${threshold}연속` : ''; break
-          case 'streak_sp_home':  label = '📉홈 핸디';  detail = threshold ? `${threshold}연속` : ''; break
-          case 'streak_sp_away':  label = '📉원정 핸디'; detail = threshold ? `${threshold}연속` : ''; break
-          case 'streak_ou_over':  label = '📉오버';     detail = threshold ? `${threshold}연속` : ''; break
-          case 'streak_ou_under': label = '📉언더';     detail = threshold ? `${threshold}연속` : ''; break
-          default: label = type; detail = threshold || ''
-        }
-        return (
-          <span key={type} className="text-sm px-3 py-1 rounded-lg bg-yellow-500 text-gray-900 font-bold">
-            {label}{detail ? ` ${detail}` : ''}
-          </span>
-        )
-      })}
+      {badges.map(b => (
+        <span key={b.key} className="text-sm px-3 py-1 rounded-lg bg-yellow-500 text-gray-900 font-bold">
+          {b.label} {b.detail}
+        </span>
+      ))}
     </div>
   )
 }
