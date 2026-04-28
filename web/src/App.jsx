@@ -36,7 +36,7 @@ const TEAM_ABBREV = {
   'New York Islanders':'NYI','New York Rangers':'NYR','Ottawa Senators':'OTT',
   'Philadelphia Flyers':'PHI','Pittsburgh Penguins':'PIT','San Jose Sharks':'SJS',
   'Seattle Kraken':'SEA','St. Louis Blues':'STL','Tampa Bay Lightning':'TBL',
-  'Toronto Maple Leafs':'TOR','Utah Hockey Club':'UTA','Utah HC':'UTA',
+  'Toronto Maple Leafs':'TOR','Utah Hockey Club':'UTA','Utah HC':'UTA','Utah Mammoth':'UTA',
   'Vancouver Canucks':'VAN',
   'Vegas Golden Knights':'VGK','Washington Capitals':'WSH','Winnipeg Jets':'WPG',
 }
