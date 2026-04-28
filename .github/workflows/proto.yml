@@ -26,13 +26,13 @@ jobs:
           restore-keys: playwright-${{ runner.os }}-
 
       - name: Install dependencies
-        run: pip install playwright supabase
+        run: pip install playwright supabase aiohttp beautifulsoup4
 
       - name: Install Chromium
         run: playwright install chromium --with-deps
 
       - name: Run scraper
-        run: python proto_scraper.py
+        run: python wisetoto_scraper.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

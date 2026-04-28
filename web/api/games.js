@@ -1,0 +1,41 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_KEY
+)
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') return res.status(200).end()
+
+  // Vercel CDN이 10분간 캐시 → Supabase는 10분마다 1번만 호출
+  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
+
+  try {
+    const [linesRes, alertsRes, pbRes, protoRes] = await Promise.all([
+      supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
+      supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
+      supabase.from('public_betting').select('*'),
+      supabase.from('proto_betting').select('*'),
+    ])
+
+    const currentIds = [...new Set((linesRes.data || []).map(g => g.matchup_id))]
+    const openingsRes = await supabase
+      .from('opening_lines')
+      .select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
+      .in('matchup_id', currentIds)
+
+    res.json({
+      lines:         linesRes.data    || [],
+      openings:      openingsRes.data || [],
+      alerts:        alertsRes.data   || [],
+      publicBetting: pbRes.data       || [],
+      protoBetting:  protoRes.data    || [],
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}

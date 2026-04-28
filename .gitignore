@@ -10,3 +10,5 @@ betwatch_test.html
 web/.env
 web/.env.local
 web/node_modules/
+
+.vercel

@@ -1,0 +1,12 @@
+{
+  "appId": "com.sharpsignal.app",
+  "appName": "샤프시그널",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#f8fafc"
+  }
+}
