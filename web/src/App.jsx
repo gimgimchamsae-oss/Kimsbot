@@ -585,8 +585,9 @@ function reverseSignals(game) {
     const lineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
     if (spHome >= REVERSE_THRESHOLD) {
       if (lineChanged) {
-        if (game.sp_pts < op.sp_pts) {
-          signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `기준점↓ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
+        // sp_pts↑ = 홈이 더 많이 받음(홈 유리해짐) = 반직관적 → 샤프 원정
+        if (game.sp_pts > op.sp_pts) {
+          signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `기준점↑ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
         }
       } else {
         const diff = (op.sp_home && game.sp_home) ? game.sp_home - op.sp_home : null
@@ -597,8 +598,9 @@ function reverseSignals(game) {
     }
     if (spAway >= REVERSE_THRESHOLD) {
       if (lineChanged) {
-        if (game.sp_pts > op.sp_pts) {
-          signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `기준점↑ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
+        // sp_pts↓ = 원정이 덜 줌(원정 유리해짐) = 반직관적 → 샤프 홈
+        if (game.sp_pts < op.sp_pts) {
+          signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `기준점↓ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
         }
       } else {
         const diff = (op.sp_away && game.sp_away) ? game.sp_away - op.sp_away : null
