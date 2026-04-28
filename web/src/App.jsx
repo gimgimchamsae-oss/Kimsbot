@@ -1334,26 +1334,28 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       const protoSport = sportMap[game.sport]
       if (!protoSport) return null
 
-      // previewn은 MLB/NBA만 신뢰 가능 — KBO/NPB/KBL은 데이터 없거나 부정확
-      if (game.sport === 'baseball'   && game.league !== 'MLB') return null
-      if (game.sport === 'basketball' && game.league !== 'NBA') return null
-
       const norm = s => (s || '').trim().toLowerCase()
+      // 6시간 이상 된 데이터는 스테일로 간주 → 표시 안 함
+      const STALE_MS = 6 * 60 * 60 * 1000
+      const isRecent = p => !p.updated_at || (Date.now() - new Date(p.updated_at).getTime()) < STALE_MS
+
       if (game.league === 'MLB' || game.league === 'NBA') {
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
         if (!homeAbbr || !awayAbbr) return null
-        return protoData.find(p =>
+        const found = protoData.find(p =>
           p.sport === protoSport &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
           p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
-        ) || null
+        )
+        return (found && isRecent(found)) ? found : null
       }
-      return protoData.find(p =>
+      const found = protoData.find(p =>
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.home) &&
         norm(p.away_abbr) === norm(game.away)
-      ) || null
+      )
+      return (found && isRecent(found)) ? found : null
     }
 
     const merged = linesData.filter(g =>

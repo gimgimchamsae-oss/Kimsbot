@@ -471,18 +471,24 @@ async def main():
 
     print(f"\n총 {len(games)}경기 수집 완료")
 
-    if not games:
-        print("데이터 없음")
-        return
-
     if SUPABASE_URL and SUPABASE_KEY:
+        sb = _sb()
         try:
-            sb = _sb()
+            # 스크래핑 결과와 무관하게 항상 먼저 초기화
+            # → 스크래핑 실패 시 stale 데이터가 남지 않도록
             sb.table("proto_betting").delete().neq("id", 0).execute()
-            sb.table("proto_betting").insert(games).execute()
-            print("Supabase 저장 완료!")
+            print("proto_betting 초기화 완료")
         except Exception as e:
-            print(f"Supabase 저장 실패: {e}")
+            print(f"초기화 실패: {e}")
+
+        if games:
+            try:
+                sb.table("proto_betting").insert(games).execute()
+                print("Supabase 저장 완료!")
+            except Exception as e:
+                print(f"Supabase 저장 실패: {e}")
+        else:
+            print("데이터 없음 — 테이블 비움")
     else:
         print("[로컬] Supabase 미설정")
 
