@@ -1333,8 +1333,13 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       const sportMap = { baseball: 'baseball', basketball: 'basketball', soccer: 'soccer' }
       const protoSport = sportMap[game.sport]
       if (!protoSport) return null
+
+      // previewn은 MLB/NBA만 신뢰 가능 — KBO/NPB/KBL은 데이터 없거나 부정확
+      if (game.sport === 'baseball'   && game.league !== 'MLB') return null
+      if (game.sport === 'basketball' && game.league !== 'NBA') return null
+
       const norm = s => (s || '').trim().toLowerCase()
-      if ((game.league === 'MLB') || (game.league === 'NBA')) {
+      if (game.league === 'MLB' || game.league === 'NBA') {
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
         if (!homeAbbr || !awayAbbr) return null
