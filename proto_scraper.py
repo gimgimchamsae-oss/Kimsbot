@@ -17,7 +17,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 # 야구에서 원하는 bet_type
-BASEBALL_TYPES = {"winLose", "overUnder", "handi"}
+BASEBALL_TYPES = {"winLose", "overUnder"}
 # 축구에서 원하는 bet_type
 SOCCER_TYPES   = {"winLose", "overUnder"}
 # 농구에서 원하는 bet_type

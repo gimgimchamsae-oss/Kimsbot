@@ -828,7 +828,7 @@ function ProtoBetting({ proto }) {
         {proto.ml_bets_home != null && <PctBar label="홈 승"   pct={proto.ml_bets_home} />}
         {proto.ml_bets_draw != null && <PctBar label="무"       pct={proto.ml_bets_draw} />}
         {proto.ml_bets_away != null && <PctBar label="원정 승"  pct={proto.ml_bets_away} />}
-        {/* 핸디캡 */}
+        {/* 핸디캡 (농구) */}
         {hasSp && proto.sp_bets_home != null && <PctBar label="홈 핸디"   pct={proto.sp_bets_home} />}
         {hasSp && proto.sp_bets_away != null && <PctBar label="원정 핸디" pct={proto.sp_bets_away} />}
         {/* 언오버 */}
