@@ -1345,11 +1345,13 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
         if (!homeAbbr || !awayAbbr) return null
         const found = protoData.find(p =>
           p.sport === protoSport &&
+          p.league === game.league &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
           p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
         )
         return (found && isRecent(found)) ? found : null
       }
+      // KBO/NPB/soccer: home_abbr = Pinnacle 영문 팀명과 직접 비교
       const found = protoData.find(p =>
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.home) &&

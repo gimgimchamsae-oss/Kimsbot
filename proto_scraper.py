@@ -473,22 +473,25 @@ async def main():
 
     if SUPABASE_URL and SUPABASE_KEY:
         sb = _sb()
+        deleted = False
         try:
-            # 스크래핑 결과와 무관하게 항상 먼저 초기화
-            # → 스크래핑 실패 시 stale 데이터가 남지 않도록
-            sb.table("proto_betting").delete().neq("id", 0).execute()
-            print("proto_betting 초기화 완료")
+            # wisetoto가 관리하는 KBO/NPB/KBL 제외하고 나머지만 초기화
+            sb.table("proto_betting").delete().neq("league", "KBO").neq("league", "NPB").neq("league", "KBL").execute()
+            deleted = True
+            print("proto_betting 초기화 완료 (KBO/NPB/KBL 제외)")
         except Exception as e:
-            print(f"초기화 실패: {e}")
+            print(f"초기화 실패 (insert 스킵): {e}")
 
-        if games:
+        if deleted and games:
             try:
                 sb.table("proto_betting").insert(games).execute()
                 print("Supabase 저장 완료!")
             except Exception as e:
                 print(f"Supabase 저장 실패: {e}")
-        else:
+        elif deleted:
             print("데이터 없음 — 테이블 비움")
+        else:
+            print("초기화 실패로 중복 방지 위해 저장 스킵")
     else:
         print("[로컬] Supabase 미설정")
 
