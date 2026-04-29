@@ -328,11 +328,12 @@ def parse_odds(items: list) -> list[dict]:
         d = item.get("d_bet_count")
         l = item.get("l_bet_count")
 
-        # KBO/NPB 첫 번째 경기 전체 필드 출력
+        # KBO/NPB 첫 번째 경기의 모든 옵션 출력 (sub_id 패턴 확인용)
         if not kbo_npb_logged and ('kbo' in bbtype or 'npb' in bbtype):
-            print(f"  [KBO/NPB DEBUG] 첫 경기 전체 키: {list(item.keys())}")
-            print(f"  [KBO/NPB DEBUG] {home} vs {away} | bbtype={bbtype} | bet_type={bet_type} | 전체={item}")
             kbo_npb_logged = True
+            _debug_home, _debug_away = home, away
+        if kbo_npb_logged and home == _debug_home and away == _debug_away:
+            print(f"  [DEBUG] no={item.get('no')} sub_id={item.get('sub_id')} bet_type={bet_type} bbtype={bbtype} w={item.get('w_bet_count')} l={item.get('l_bet_count')}")
 
         # 미정 / 데이터 없음 skip
         if home == "미정" or away == "미정" or home == "" or away == "":
