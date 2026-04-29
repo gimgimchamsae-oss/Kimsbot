@@ -1307,11 +1307,11 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
     return () => { listener?.remove() }
   }, [selected])
 
-  // 앱 포그라운드 복귀 시 자동 새로고침
+  // 앱 포그라운드 복귀 시 자동 새로고침 (스크롤 유지 위해 silent)
   useEffect(() => {
     let listener
     CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) fetchGames()
+      if (isActive) fetchGames(true)
     }).then(l => { listener = l })
     return () => { listener?.remove() }
   }, [])
@@ -1324,18 +1324,19 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
 
   useEffect(() => {
     fetchGames()
-    const timer = setInterval(fetchGames, 10 * 60 * 1000) // 10분마다 자동 새로고침
+    const timer = setInterval(() => fetchGames(true), 10 * 60 * 1000) // 10분마다 자동 새로고침 (silent)
     return () => clearInterval(timer)
   }, [])
 
-  async function fetchGames() {
-    setLoading(true)
+  // silent=true 이면 기존 데이터를 유지한 채 백그라운드 갱신 (스크롤 위치 보존)
+  async function fetchGames(silent = false) {
+    if (!silent) setLoading(true)
     let json
     try {
       const res = await fetch(`${API_BASE}/api/games`)
       json = await res.json()
     } catch (e) {
-      setLoading(false)
+      if (!silent) setLoading(false)
       return
     }
 
@@ -1419,7 +1420,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
     }))
     setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
-    setLoading(false)
+    if (!silent) setLoading(false)
   }
 
   const isPastView  = tab === 'past'
