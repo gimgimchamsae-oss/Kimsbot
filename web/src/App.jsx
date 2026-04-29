@@ -843,6 +843,10 @@ const REVERSE_THRESHOLD      = 70   // 야구·농구·O/U
 const REVERSE_THRESHOLD_3W   = 65   // 축구 승무패
 
 function reverseSignals(game) {
+  // 경기 시작 2시간 이내일 때만 시그널 표시
+  const hours = hoursUntil(game.starts_at)
+  if (hours === null || hours < 0 || hours > 2) return []
+
   const proto   = game.protoBetting
   const pb      = game.publicBetting
   const op      = game.opening || {}
