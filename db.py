@@ -167,6 +167,107 @@ def save_openings_batch(games: list):
                 conn.execute(f"INSERT OR IGNORE INTO opening_lines ({cols}) VALUES ({vals})", row)
 
 
+def refresh_stale_soccer_openings(games: list, existing_openings: dict):
+    """
+    축구 경기: 오프닝 기록이 7일 이상 됐고, 경기 시작이 72시간 이내면
+    현재 배당으로 오프닝을 덮어씀 → '오프닝' = 경기 72시간 전 배당
+    (축구는 경기를 몇 달 전부터 등록하기 때문에 첫 감지 배당이 오프닝으로
+     쌓이면 diff가 수십 배 차이 나는 문제 해결)
+    """
+    if not games:
+        return
+
+    KST = timezone(timedelta(hours=9))
+    now_kst  = datetime.now(KST)
+    now_utc  = datetime.now(timezone.utc)
+    AGE_THRESHOLD   = timedelta(days=7)
+    START_THRESHOLD = timedelta(hours=72)
+
+    FIELDS = ["ml_home", "ml_away", "ml_draw",
+              "sp_pts", "sp_home", "sp_away",
+              "ou_pts", "ou_over", "ou_under"]
+
+    to_refresh = []
+    for game in games:
+        if game.get("sport") != "soccer":
+            continue
+        mid     = game["matchup_id"]
+        opening = existing_openings.get(mid)
+        if not opening:
+            continue
+
+        # ── 오프닝 ts 파싱 (ISO8601 UTC) ─────────────────
+        ts_str = opening.get("ts")
+        if not ts_str:
+            continue
+        try:
+            op_ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            if op_ts.tzinfo is None:
+                op_ts = op_ts.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        # 오프닝이 7일 미만이면 스킵
+        if now_utc - op_ts < AGE_THRESHOLD:
+            continue
+
+        # ── starts_at 파싱: "MM/DD HH:MM KST" ────────────
+        starts_str = opening.get("starts_at") or game.get("starts_at", "")
+        try:
+            clean = starts_str.replace(" KST", "").strip()  # "MM/DD HH:MM"
+            month_str, rest = clean.split("/", 1)
+            parts = rest.split(" ")
+            day_str  = parts[0]
+            hhmm     = parts[1] if len(parts) > 1 else "00:00"
+            hh, mm   = hhmm.split(":")
+            year = now_kst.year
+            game_start = datetime(year, int(month_str), int(day_str),
+                                  int(hh), int(mm), tzinfo=KST)
+            # 연도 경계 처리 (12월→1월)
+            if game_start < now_kst - timedelta(days=180):
+                game_start = game_start.replace(year=year + 1)
+        except Exception:
+            continue
+
+        # 경기 시작이 72시간 초과이면 스킵 (아직 멀었음)
+        time_to_start = game_start - now_kst
+        if time_to_start < timedelta(0) or time_to_start > START_THRESHOLD:
+            continue
+
+        # ── 조건 충족 → 현재 배당으로 덮어쓰기 ─────────
+        row    = _game_row(game)
+        update = {k: row[k] for k in FIELDS if row.get(k) is not None}
+        update["ts"] = now_utc.isoformat()
+        if update:
+            to_refresh.append((mid, update, game.get("home",""), game.get("away","")))
+
+    if not to_refresh:
+        return
+
+    print(f"[오프닝 갱신] 축구 {len(to_refresh)}경기 오프닝 리셋 (72h 이내 + 7일 이상 된 기록)")
+    for _, __, h, a in to_refresh:
+        print(f"  → {h} vs {a}")
+
+    if USE_SUPABASE:
+        sb = _sb()
+        for mid, updates, _, __ in to_refresh:
+            sb.table("opening_lines").update(updates).eq("matchup_id", mid).execute()
+    else:
+        with _sqlite() as conn:
+            for mid, updates, _, __ in to_refresh:
+                u = dict(updates)
+                set_clause = ", ".join(f"{k}=:{k}" for k in u)
+                u["matchup_id"] = mid
+                conn.execute(
+                    f"UPDATE opening_lines SET {set_clause} WHERE matchup_id=:matchup_id", u
+                )
+
+    # 갱신된 오프닝을 existing_openings 딕셔너리에도 반영 (이번 실행의 alert 체크에 반영)
+    for mid, updates, _, __ in to_refresh:
+        if mid in existing_openings:
+            existing_openings[mid].update(updates)
+
+
 def fill_opening_nulls_batch(games: list, existing_openings: dict):
     """
     기존 오프닝에 null 필드가 있을 때만 업데이트.

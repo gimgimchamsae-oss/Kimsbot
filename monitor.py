@@ -10,7 +10,8 @@ from datetime import datetime, timezone, timedelta
 from pinnacle_scraper import fetch_games
 from db import (init_db,
                 get_all_openings_batch, get_recent_snapshots_batch,
-                save_openings_batch, save_snapshots_batch, fill_opening_nulls_batch)
+                save_openings_batch, save_snapshots_batch, fill_opening_nulls_batch,
+                refresh_stale_soccer_openings)
 from alert import check_alerts
 
 KST = timezone(timedelta(hours=9))
@@ -130,6 +131,7 @@ def run():
     print(f"저장 중... (신규오프닝 {len(new_openings)}건)")
     save_openings_batch(new_openings)
     fill_opening_nulls_batch(games, all_openings)
+    refresh_stale_soccer_openings(games, all_openings)   # 축구 오프닝 리셋 (72h 이내 + 7일 이상)
     save_snapshots_batch(games)
 
     # ── 오프닝 알림 ──────────────────────────────────────

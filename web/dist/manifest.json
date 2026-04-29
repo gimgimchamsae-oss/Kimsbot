@@ -1,11 +1,11 @@
 {
-  "name": "Pinnacle RLM",
-  "short_name": "Pinnacle RLM",
-  "description": "Pinnacle 실시간 배당 모니터",
+  "name": "샤프시그널",
+  "short_name": "샤프시그널",
+  "description": "실시간 샤프 시그널 모니터",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#111827",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
   "orientation": "portrait",
   "icons": [
     {
