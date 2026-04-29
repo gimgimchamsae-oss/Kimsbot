@@ -1412,15 +1412,32 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       return (found && isRecent(found)) ? found : null
     }
 
-    const merged = linesData.filter(g =>
+    // MLB/NBA 시리즈 중복 추적: 같은 팀조합이 이미 나온 경우 2번째부터 proto 표시 안 함
+    const seenProtoKey = new Set()
+    const filteredLines = linesData.filter(g =>
       !/(Games\))/i.test(g.home || '') && !/(Games\))/i.test(g.away || '')
-    ).map(g => ({
-      ...g,
-      opening:      openingsMap[g.matchup_id] || null,
-      recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
-      publicBetting: findPb(g),
-      protoBetting:  findProto(g),
-    }))
+    )
+    const merged = filteredLines.map(g => {
+      let protoBetting = null
+      if (g.league === 'MLB' || g.league === 'NBA') {
+        const hA = TEAM_ABBREV[g.home] || ''
+        const aA = TEAM_ABBREV[g.away] || ''
+        const pKey = `${g.league}:${hA}:${aA}`
+        if (hA && aA && !seenProtoKey.has(pKey)) {
+          seenProtoKey.add(pKey)
+          protoBetting = findProto(g)
+        }
+      } else {
+        protoBetting = findProto(g)
+      }
+      return {
+        ...g,
+        opening:      openingsMap[g.matchup_id] || null,
+        recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
+        publicBetting: findPb(g),
+        protoBetting,
+      }
+    })
     setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
     if (!silent) setLoading(false)
