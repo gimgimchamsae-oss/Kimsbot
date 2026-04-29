@@ -379,28 +379,33 @@ def parse_odds(items: list) -> list[dict]:
         g = games[key]
 
         if bet_type == "winLose":
-            total = (w or 0) + (d or 0) + (l or 0)
-            if sport == 'soccer' and d is not None:
-                # 축구 승무패: w=홈승, d=무, l=원정승
-                g["ml_bets_home"] = _pct(w, total)
-                g["ml_bets_draw"] = _pct(d, total)
-                g["ml_bets_away"] = _pct(l, total)
-            else:
-                # 야구/농구 승패: w=홈승, l=원정승
-                total2 = (w or 0) + (l or 0)
-                g["ml_bets_home"] = _pct(w, total2)
-                g["ml_bets_away"] = _pct(l, total2)
+            # 첫 번째 winLose만 사용 (일반승패) — 전반승패·승1패 등 덮어쓰기 방지
+            if g["ml_bets_home"] is None:
+                total = (w or 0) + (d or 0) + (l or 0)
+                if sport == 'soccer' and d is not None:
+                    # 축구 승무패: w=홈승, d=무, l=원정승
+                    g["ml_bets_home"] = _pct(w, total)
+                    g["ml_bets_draw"] = _pct(d, total)
+                    g["ml_bets_away"] = _pct(l, total)
+                else:
+                    # 야구/농구 승패: w=홈승, l=원정승
+                    total2 = (w or 0) + (l or 0)
+                    g["ml_bets_home"] = _pct(w, total2)
+                    g["ml_bets_away"] = _pct(l, total2)
 
         elif bet_type == "overUnder":
-            # w=언더, l=오버 (또는 반대 — 첫 실행 후 확인)
-            total = (w or 0) + (l or 0)
-            g["ou_bets_under"] = _pct(w, total)
-            g["ou_bets_over"]  = _pct(l, total)
+            # 첫 번째 overUnder만 사용 (일반언오버) — 전반언오버 덮어쓰기 방지
+            if g["ou_bets_over"] is None:
+                total = (w or 0) + (l or 0)
+                g["ou_bets_under"] = _pct(w, total)
+                g["ou_bets_over"]  = _pct(l, total)
 
         elif bet_type == "handi":
-            total = (w or 0) + (l or 0)
-            g["sp_bets_home"] = _pct(w, total)
-            g["sp_bets_away"] = _pct(l, total)
+            # 첫 번째 handi만 사용 (일반핸디) — 전반핸디 덮어쓰기 방지
+            if g["sp_bets_home"] is None:
+                total = (w or 0) + (l or 0)
+                g["sp_bets_home"] = _pct(w, total)
+                g["sp_bets_away"] = _pct(l, total)
 
     result = list(games.values())
     if unmatched:
