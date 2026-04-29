@@ -1310,15 +1310,6 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
     return () => { listener?.remove() }
   }, [selected])
 
-  // 앱 포그라운드 복귀 시 자동 새로고침 (스크롤 유지 위해 silent)
-  useEffect(() => {
-    let listener
-    CapApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) fetchGames(true)
-    }).then(l => { listener = l })
-    return () => { listener?.remove() }
-  }, [])
-
   // 모달 열릴 때 배경 스크롤 방지
   useEffect(() => {
     document.body.style.overflow = selected ? 'hidden' : ''
@@ -1327,7 +1318,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
 
   useEffect(() => {
     fetchGames()
-    const timer = setInterval(() => fetchGames(true), 10 * 60 * 1000) // 10분마다 자동 새로고침 (silent)
+    const timer = setInterval(() => fetchGames(true), 30 * 60 * 1000) // 30분마다 자동 새로고침 (silent)
     return () => clearInterval(timer)
   }, [])
 
