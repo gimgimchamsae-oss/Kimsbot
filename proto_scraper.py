@@ -17,7 +17,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 # 야구에서 원하는 bet_type
-BASEBALL_TYPES = {"winLose", "overUnder"}
+BASEBALL_TYPES = {"winLose", "overUnder", "handi", "oddEven"}
 # 축구에서 원하는 bet_type
 SOCCER_TYPES   = {"winLose", "overUnder"}
 # 농구에서 원하는 bet_type
@@ -397,8 +397,9 @@ def parse_odds(items: list) -> list[dict]:
                 "home_abbr": home_abbr,
                 "away_abbr": away_abbr,
                 "ml_bets_home": None, "ml_bets_away": None, "ml_bets_draw": None,
-                "ou_bets_over": None, "ou_bets_under": None,
                 "sp_bets_home": None, "sp_bets_away": None,
+                "ou_bets_over": None, "ou_bets_under": None,
+                "oe_bets_odd":  None, "oe_bets_even": None,
                 "updated_at": datetime.now(KST).isoformat(),
             }
 
@@ -416,17 +417,23 @@ def parse_odds(items: list) -> list[dict]:
                     g["ml_bets_home"] = _pct(w, total2)
                     g["ml_bets_away"] = _pct(l, total2)
 
-        elif bet_type == "overUnder":
-            if g["ou_bets_over"] is None:
-                total = (w or 0) + (l or 0)
-                g["ou_bets_under"] = _pct(w, total)
-                g["ou_bets_over"]  = _pct(l, total)
-
         elif bet_type == "handi":
             if g["sp_bets_home"] is None:
                 total = (w or 0) + (l or 0)
                 g["sp_bets_home"] = _pct(w, total)
                 g["sp_bets_away"] = _pct(l, total)
+
+        elif bet_type == "overUnder":
+            if g["ou_bets_over"] is None:
+                total = (w or 0) + (l or 0)
+                g["ou_bets_over"]  = _pct(w, total)
+                g["ou_bets_under"] = _pct(l, total)
+
+        elif bet_type == "oddEven":
+            if g["oe_bets_odd"] is None:
+                total = (w or 0) + (l or 0)
+                g["oe_bets_odd"]  = _pct(w, total)
+                g["oe_bets_even"] = _pct(l, total)
 
     result = list(games.values())
     if unmatched:

@@ -816,21 +816,28 @@ function PublicBetting({ pb, isSoccer }) {
 
 function ProtoBetting({ proto }) {
   if (!proto) return null
+  const hasMl = proto.ml_bets_home != null || proto.ml_bets_away != null
   const hasSp = proto.sp_bets_home != null || proto.sp_bets_away != null
   const hasOu = proto.ou_bets_over != null || proto.ou_bets_under != null
-  const hasMl = proto.ml_bets_home != null || proto.ml_bets_away != null
-  if (!hasMl && !hasOu && !hasSp) return null
+  const hasOe = proto.oe_bets_odd  != null || proto.oe_bets_even != null
+  if (!hasMl && !hasOu && !hasSp && !hasOe) return null
   return (
     <div className="mt-2 pt-2 border-t border-slate-100">
       <div className="text-xs font-semibold text-slate-400 tracking-wide mb-2">국내 구매율</div>
       <div className="space-y-1">
+        {/* 승패 (ML / 승무패) */}
         {proto.ml_bets_home != null && <PctBar label="홈 승"   pct={proto.ml_bets_home} />}
         {proto.ml_bets_draw != null && <PctBar label="무"       pct={proto.ml_bets_draw} />}
         {proto.ml_bets_away != null && <PctBar label="원정 승"  pct={proto.ml_bets_away} />}
-        {hasSp && proto.sp_bets_home != null && <PctBar label="홈 핸디"  pct={proto.sp_bets_home} />}
+        {/* 핸디캡 */}
+        {hasSp && proto.sp_bets_home != null && <PctBar label="홈 핸디"   pct={proto.sp_bets_home} />}
         {hasSp && proto.sp_bets_away != null && <PctBar label="원정 핸디" pct={proto.sp_bets_away} />}
+        {/* 언오버 */}
         {hasOu && proto.ou_bets_over  != null && <PctBar label="오버" pct={proto.ou_bets_over} />}
         {hasOu && proto.ou_bets_under != null && <PctBar label="언더" pct={proto.ou_bets_under} />}
+        {/* 홀짝 */}
+        {hasOe && proto.oe_bets_odd  != null && <PctBar label="홀" pct={proto.oe_bets_odd} />}
+        {hasOe && proto.oe_bets_even != null && <PctBar label="짝" pct={proto.oe_bets_even} />}
       </div>
     </div>
   )
