@@ -313,12 +313,29 @@ def _league(bbtype: str) -> str:
 
 def parse_odds(items: list) -> list[dict]:
     """GraphQL odds 항목 리스트 → game dict 리스트"""
-    # 게임 키: (bbtype, home_team, away_team) 로 그룹핑
+
+    # ── 1단계: 게임별 최소 sub_id 파악 (전반 옵션 걸러내기 위해) ──────────
+    # 같은 (bbtype, home, away) 그룹의 sub_id 중 최솟값이 그 게임의 시작점
+    # offset = sub_id - min_sub_id 가 5 이상이면 전반(후반 X) 옵션
+    game_min_sub: dict[tuple, int] = {}
+    for item in items:
+        home = (item.get("home_team_name") or "").strip()
+        away = (item.get("away_team_name") or "").strip()
+        bbtype = (item.get("bbtype") or "").lower()
+        sub_id = item.get("sub_id")
+        if not home or not away or home == "미정" or away == "미정":
+            continue
+        if sub_id is None:
+            continue
+        key = (bbtype, home, away)
+        sid = int(sub_id)
+        if key not in game_min_sub or sid < game_min_sub[key]:
+            game_min_sub[key] = sid
+
+    # ── 2단계: 전반 옵션 제외 후 집계 ────────────────────────────────────
     games: dict[tuple, dict] = {}
     unmatched = set()
 
-    # KBO/NPB 디버그: 실제 GraphQL 필드 확인용
-    kbo_npb_logged = False
     for item in items:
         home = (item.get("home_team_name") or "").strip()
         away = (item.get("away_team_name") or "").strip()
@@ -328,18 +345,19 @@ def parse_odds(items: list) -> list[dict]:
         d = item.get("d_bet_count")
         l = item.get("l_bet_count")
 
-        # KBO/NPB 첫 번째 경기의 모든 옵션 출력 (sub_id 패턴 확인용)
-        if not kbo_npb_logged and ('kbo' in bbtype or 'npb' in bbtype):
-            kbo_npb_logged = True
-            _debug_home, _debug_away = home, away
-        if kbo_npb_logged and home == _debug_home and away == _debug_away:
-            print(f"  [DEBUG] no={item.get('no')} sub_id={item.get('sub_id')} bet_type={bet_type} bbtype={bbtype} w={item.get('w_bet_count')} l={item.get('l_bet_count')}")
-
         # 미정 / 데이터 없음 skip
         if home == "미정" or away == "미정" or home == "" or away == "":
             continue
         if w is None and d is None and l is None:
             continue
+
+        # 전반 옵션 제외: offset > 4 이면 전반(전반승패·전반핸디·전반언오버)
+        sub_id = item.get("sub_id")
+        key = (bbtype, home, away)
+        if sub_id is not None and key in game_min_sub:
+            offset = int(sub_id) - game_min_sub[key]
+            if offset > 4:
+                continue
 
         sport = _sport(bbtype)
 
@@ -351,7 +369,6 @@ def parse_odds(items: list) -> list[dict]:
         if sport == 'basketball' and bet_type not in BASKET_TYPES:
             continue
 
-        key = (bbtype, home, away)
         if key not in games:
             league = _league(bbtype)
             if sport == 'soccer':
@@ -388,29 +405,24 @@ def parse_odds(items: list) -> list[dict]:
         g = games[key]
 
         if bet_type == "winLose":
-            # 첫 번째 winLose만 사용 (일반승패) — 전반승패·승1패 등 덮어쓰기 방지
             if g["ml_bets_home"] is None:
                 total = (w or 0) + (d or 0) + (l or 0)
                 if sport == 'soccer' and d is not None:
-                    # 축구 승무패: w=홈승, d=무, l=원정승
                     g["ml_bets_home"] = _pct(w, total)
                     g["ml_bets_draw"] = _pct(d, total)
                     g["ml_bets_away"] = _pct(l, total)
                 else:
-                    # 야구/농구 승패: w=홈승, l=원정승
                     total2 = (w or 0) + (l or 0)
                     g["ml_bets_home"] = _pct(w, total2)
                     g["ml_bets_away"] = _pct(l, total2)
 
         elif bet_type == "overUnder":
-            # 첫 번째 overUnder만 사용 (일반언오버) — 전반언오버 덮어쓰기 방지
             if g["ou_bets_over"] is None:
                 total = (w or 0) + (l or 0)
                 g["ou_bets_under"] = _pct(w, total)
                 g["ou_bets_over"]  = _pct(l, total)
 
         elif bet_type == "handi":
-            # 첫 번째 handi만 사용 (일반핸디) — 전반핸디 덮어쓰기 방지
             if g["sp_bets_home"] is None:
                 total = (w or 0) + (l or 0)
                 g["sp_bets_home"] = _pct(w, total)
@@ -491,10 +503,10 @@ async def main():
         sb = _sb()
         deleted = False
         try:
-            # wisetoto가 관리하는 KBO/NPB/KBL 제외하고 나머지만 초기화
-            sb.table("proto_betting").delete().neq("league", "KBO").neq("league", "NPB").neq("league", "KBL").execute()
+            # proto_betting 전체 초기화 (모든 리그 포함)
+            sb.table("proto_betting").delete().in_("sport", ["baseball", "basketball", "soccer"]).execute()
             deleted = True
-            print("proto_betting 초기화 완료 (KBO/NPB/KBL 제외)")
+            print("proto_betting 초기화 완료")
         except Exception as e:
             print(f"초기화 실패 (insert 스킵): {e}")
 
