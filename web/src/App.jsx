@@ -819,8 +819,7 @@ function ProtoBetting({ proto }) {
   const hasMl = proto.ml_bets_home != null || proto.ml_bets_away != null
   const hasSp = proto.sp_bets_home != null || proto.sp_bets_away != null
   const hasOu = proto.ou_bets_over != null || proto.ou_bets_under != null
-  const hasOe = proto.oe_bets_odd  != null || proto.oe_bets_even != null
-  if (!hasMl && !hasOu && !hasSp && !hasOe) return null
+  if (!hasMl && !hasOu && !hasSp) return null
   return (
     <div className="mt-2 pt-2 border-t border-slate-100">
       <div className="text-xs font-semibold text-slate-400 tracking-wide mb-2">국내 구매율</div>
@@ -835,9 +834,6 @@ function ProtoBetting({ proto }) {
         {/* 언오버 */}
         {hasOu && proto.ou_bets_over  != null && <PctBar label="오버" pct={proto.ou_bets_over} />}
         {hasOu && proto.ou_bets_under != null && <PctBar label="언더" pct={proto.ou_bets_under} />}
-        {/* 홀짝 */}
-        {hasOe && proto.oe_bets_odd  != null && <PctBar label="홀" pct={proto.oe_bets_odd} />}
-        {hasOe && proto.oe_bets_even != null && <PctBar label="짝" pct={proto.oe_bets_even} />}
       </div>
     </div>
   )
