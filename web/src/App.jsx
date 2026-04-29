@@ -836,8 +836,8 @@ function ProtoBetting({ proto }) {
   )
 }
 
-const REVERSE_THRESHOLD    = 70
-const REVERSE_THRESHOLD_3W = 60
+const REVERSE_THRESHOLD      = 70   // 야구·농구·O/U
+const REVERSE_THRESHOLD_3W   = 65   // 축구 승무패
 
 function reverseSignals(game) {
   const proto   = game.protoBetting
@@ -847,84 +847,132 @@ function reverseSignals(game) {
 
   const mlHome  = proto?.ml_bets_home  ?? pb?.ml_bets_home
   const mlAway  = proto?.ml_bets_away  ?? pb?.ml_bets_away
-  const mlDraw  = proto?.ml_bets_draw  ?? pb?.ml_bets_draw
-  const spHome  = proto?.sp_bets_home  ?? pb?.sp_bets_home
-  const spAway  = proto?.sp_bets_away  ?? pb?.sp_bets_away
   const ouOver  = proto?.ou_bets_over  ?? pb?.ou_bets_over
   const ouUnder = proto?.ou_bets_under ?? pb?.ou_bets_under
 
   const fmtPts  = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
   const isSoccer = game.sport === 'soccer'
-  const mlThreshold = isSoccer ? REVERSE_THRESHOLD_3W : REVERSE_THRESHOLD
 
-  // ── ML 역추세: 축구 제외 (3-way라 방향 불명확) ────────────────
-  if (!isSoccer && mlHome != null && mlAway != null) {
-    if (mlHome >= mlThreshold) {
+  if (isSoccer) {
+    // ── [축구 Signal 1] 승무패 역추세: 정배 편중 + 정배 배당 상승 ─────
+    // 정배 판별: 현재 배당 낮은 쪽
+    const homeFav = game.ml_home != null && game.ml_away != null && game.ml_home < game.ml_away
+    const awayFav = game.ml_home != null && game.ml_away != null && game.ml_away < game.ml_home
+
+    if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W) {
       const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
-      if (diff != null && diff >= 0.05) {
-        signals.push({ market: 'ML', pick: '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
+      if (diff != null && diff >= 0.03) {
+        signals.push({ market: 'ML', pick: '원정 플핸', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
       }
     }
-    if (mlAway >= mlThreshold) {
+    if (awayFav && mlAway != null && mlAway >= REVERSE_THRESHOLD_3W) {
       const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
-      if (diff != null && diff >= 0.05) {
-        signals.push({ market: 'ML', pick: '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
+      if (diff != null && diff >= 0.03) {
+        signals.push({ market: 'ML', pick: '홈 플핸', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
       }
     }
-  }
 
-
-  if (spHome != null && spAway != null) {
-    const lineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
-    if (spHome >= REVERSE_THRESHOLD) {
-      if (lineChanged) {
-        if (game.sp_pts > op.sp_pts) {
-          signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `기준점↑ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
-        }
-      } else {
-        const diff = (op.sp_home && game.sp_home) ? game.sp_home - op.sp_home : null
-        if (diff != null && diff >= 0.05) {
-          signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `홈핸디배당↑ +${diff.toFixed(2)}` })
-        }
+    // ── [축구 Signal 2] 핸디라인 이동: 정배 편중 + sp_pts 정배에 불리하게 변동 ─
+    const spLineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
+    if (spLineChanged) {
+      if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W && game.sp_pts > op.sp_pts) {
+        // 홈 정배인데 핸디선이 홈에게 불리하게 상승 → 원정 플핸
+        signals.push({ market: '핸디', pick: '원정 플핸', publicSide: `홈 ${mlHome}%`, reason: `핸디선 ${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}` })
+      }
+      if (awayFav && mlAway != null && mlAway >= REVERSE_THRESHOLD_3W && game.sp_pts < op.sp_pts) {
+        // 원정 정배인데 핸디선이 원정에게 불리하게 하락 → 홈 플핸
+        signals.push({ market: '핸디', pick: '홈 플핸', publicSide: `원정 ${mlAway}%`, reason: `핸디선 ${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}` })
       }
     }
-    if (spAway >= REVERSE_THRESHOLD) {
-      if (lineChanged) {
-        if (game.sp_pts < op.sp_pts) {
-          signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `기준점↓ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
-        }
-      } else {
-        const diff = (op.sp_away && game.sp_away) ? game.sp_away - op.sp_away : null
-        if (diff != null && diff >= 0.05) {
-          signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `원정핸디배당↑ +${diff.toFixed(2)}` })
-        }
-      }
-    }
-  }
 
-  if (ouOver != null && ouUnder != null) {
-    const lineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
-    if (ouOver >= REVERSE_THRESHOLD) {
-      if (lineChanged) {
-        if (game.ou_pts < op.ou_pts) {
+    // ── [축구 Signal 3] O/U 역추세: 오버 편중 + 기준점 하락 or 오버배당 상승 ─
+    if (ouOver != null && ouUnder != null) {
+      const ouLineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
+      if (ouOver >= REVERSE_THRESHOLD) {
+        if (ouLineChanged && game.ou_pts < op.ou_pts) {
           signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
-        }
-      } else {
-        const diff = (op.ou_over && game.ou_over) ? game.ou_over - op.ou_over : null
-        if (diff != null && diff >= 0.05) {
-          signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
+        } else if (!ouLineChanged) {
+          const diff = (op.ou_over && game.ou_over) ? game.ou_over - op.ou_over : null
+          if (diff != null && diff >= 0.03) {
+            signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
+          }
         }
       }
     }
-    if (ouUnder >= REVERSE_THRESHOLD) {
-      if (lineChanged) {
-        if (game.ou_pts > op.ou_pts) {
-          signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `기준점↑ (${op.ou_pts}→${game.ou_pts})` })
-        }
-      } else {
-        const diff = (op.ou_under && game.ou_under) ? game.ou_under - op.ou_under : null
+
+  } else {
+    // ── 야구·농구 ML 역추세 ────────────────────────────────────────
+    if (mlHome != null && mlAway != null) {
+      if (mlHome >= REVERSE_THRESHOLD) {
+        const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
         if (diff != null && diff >= 0.05) {
-          signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `언더배당↑ +${diff.toFixed(2)}` })
+          signals.push({ market: 'ML', pick: '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
+        }
+      }
+      if (mlAway >= REVERSE_THRESHOLD) {
+        const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
+        if (diff != null && diff >= 0.05) {
+          signals.push({ market: 'ML', pick: '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
+        }
+      }
+    }
+
+    // ── 야구·농구 핸디 역추세 ─────────────────────────────────────
+    const spHome  = proto?.sp_bets_home  ?? pb?.sp_bets_home
+    const spAway  = proto?.sp_bets_away  ?? pb?.sp_bets_away
+    if (spHome != null && spAway != null) {
+      const lineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
+      if (spHome >= REVERSE_THRESHOLD) {
+        if (lineChanged) {
+          if (game.sp_pts > op.sp_pts) {
+            signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `기준점↑ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
+          }
+        } else {
+          const diff = (op.sp_home && game.sp_home) ? game.sp_home - op.sp_home : null
+          if (diff != null && diff >= 0.05) {
+            signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `홈핸디배당↑ +${diff.toFixed(2)}` })
+          }
+        }
+      }
+      if (spAway >= REVERSE_THRESHOLD) {
+        if (lineChanged) {
+          if (game.sp_pts < op.sp_pts) {
+            signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `기준점↓ (${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)})` })
+          }
+        } else {
+          const diff = (op.sp_away && game.sp_away) ? game.sp_away - op.sp_away : null
+          if (diff != null && diff >= 0.05) {
+            signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `원정핸디배당↑ +${diff.toFixed(2)}` })
+          }
+        }
+      }
+    }
+
+    // ── 야구·농구 O/U 역추세 ─────────────────────────────────────
+    if (ouOver != null && ouUnder != null) {
+      const lineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
+      if (ouOver >= REVERSE_THRESHOLD) {
+        if (lineChanged) {
+          if (game.ou_pts < op.ou_pts) {
+            signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
+          }
+        } else {
+          const diff = (op.ou_over && game.ou_over) ? game.ou_over - op.ou_over : null
+          if (diff != null && diff >= 0.05) {
+            signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
+          }
+        }
+      }
+      if (ouUnder >= REVERSE_THRESHOLD) {
+        if (lineChanged) {
+          if (game.ou_pts > op.ou_pts) {
+            signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `기준점↑ (${op.ou_pts}→${game.ou_pts})` })
+          }
+        } else {
+          const diff = (op.ou_under && game.ou_under) ? game.ou_under - op.ou_under : null
+          if (diff != null && diff >= 0.05) {
+            signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `언더배당↑ +${diff.toFixed(2)}` })
+          }
         }
       }
     }
