@@ -17,7 +17,24 @@ function mirrorProtoBetting(rows = []) {
     sp_bets_home: row.sp_bets_away,
     sp_bets_away: row.sp_bets_home,
   }))
-  return [...rows, ...mirrored]
+  return expandProtoDates([...rows, ...mirrored])
+}
+
+function shiftDate(date, days) {
+  if (!date) return date
+  const d = new Date(`${date}T00:00:00Z`)
+  if (Number.isNaN(d.getTime())) return date
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+function expandProtoDates(rows = []) {
+  return rows.flatMap(row => [
+    row,
+    { ...row, game_date: shiftDate(row.game_date, -1) },
+    { ...row, game_date: shiftDate(row.game_date, 1) },
+    { ...row, game_date: '' },
+  ])
 }
 
 export default async function handler(req, res) {
