@@ -348,104 +348,107 @@ def _league(bbtype: str) -> str:
 
 
 def parse_odds(items: list) -> list[dict]:
-    """GraphQL odds 항목 리스트 → game dict 리스트"""
+    """GraphQL odds 항목 리스트 → game dict 리스트
+    round_id = 경기 고유 ID. 같은 경기의 모든 bet 항목이 동일 round_id 공유.
+    round_id 기준으로 묶어야 3연전/더블헤더에서 Game1·2·3가 올바르게 분리됨.
+    """
 
-    # ── 1단계: 게임별 최소 sub_id + match_start_timestamp 파악 ──────────
-    game_min_sub:  dict[tuple, int] = {}
-    game_timestamp: dict[tuple, int] = {}
+    # ── 1단계: round_id별 최소 sub_id + 경기 기본 정보 수집 ──────────────
+    round_min_sub: dict[str, int]  = {}
+    round_info:    dict[str, dict] = {}
+
     for item in items:
+        rid = str(item.get("round_id") or "")
+        if not rid:
+            continue
         home = (item.get("home_team_name") or "").strip()
         away = (item.get("away_team_name") or "").strip()
-        bbtype = (item.get("bbtype") or "").lower()
-        sub_id = item.get("sub_id")
         if not home or not away or home == "미정" or away == "미정":
             continue
+        sub_id = item.get("sub_id")
         if sub_id is None:
             continue
-        key = (bbtype, home, away)
         sid = int(sub_id)
-        if key not in game_min_sub or sid < game_min_sub[key]:
-            game_min_sub[key] = sid
-        ts = item.get("match_start_timestamp")
-        if ts and key not in game_timestamp:
-            game_timestamp[key] = int(ts)
+        if rid not in round_min_sub or sid < round_min_sub[rid]:
+            round_min_sub[rid] = sid
+        if rid not in round_info:
+            round_info[rid] = {
+                "home":     home,
+                "away":     away,
+                "home_src": (item.get("home_team_source_name") or "").strip(),
+                "away_src": (item.get("away_team_source_name") or "").strip(),
+                "bbtype":   (item.get("bbtype") or "").lower(),
+                "ts":       item.get("match_start_timestamp"),
+            }
 
-    # ── 2단계: 전반 옵션 제외 후 집계 ────────────────────────────────────
-    games: dict[tuple, dict] = {}
+    # ── 2단계: round_id 기준으로 집계 ────────────────────────────────────
+    # sub_id 오름차순 처리 → 전체경기(낮은 sub_id) 먼저, 전반(높은 sub_id) 나중
+    # offset > 4 이상은 전반 옵션(전반승패·전반언오버 등) → 스킵
+    # 각 bet_type은 첫 번째 발생값만 저장 (is None 체크) → 전반이 남아도 덮어쓰기 없음
+    items_sorted = sorted(items, key=lambda x: int(x.get("sub_id") or 0))
+
+    games: dict[str, dict] = {}
     unmatched = set()
 
-    for item in items:
-        home = (item.get("home_team_name") or "").strip()
-        away = (item.get("away_team_name") or "").strip()
-        bbtype = (item.get("bbtype") or "").lower()
+    for item in items_sorted:
+        rid = str(item.get("round_id") or "")
+        if not rid or rid not in round_min_sub:
+            continue
+
+        # 전반 옵션 제외: 해당 round의 min sub_id 기준 offset > 4
+        sub_id = item.get("sub_id")
+        if sub_id is not None:
+            offset = int(sub_id) - round_min_sub[rid]
+            if offset > 4:
+                continue
+
         bet_type = item.get("bet_type") or ""
         w = item.get("w_bet_count")
         d = item.get("d_bet_count")
         l = item.get("l_bet_count")
-
-        # 미정 / 데이터 없음 skip
-        if home == "미정" or away == "미정" or home == "" or away == "":
-            continue
         if w is None and d is None and l is None:
             continue
 
-        # 전반 옵션 제외: offset > 4 이면 전반(전반승패·전반핸디·전반언오버)
-        sub_id = item.get("sub_id")
-        key = (bbtype, home, away)
-        if sub_id is not None and key in game_min_sub:
-            offset = int(sub_id) - game_min_sub[key]
-            if offset > 4:
-                continue
-
-        sport = _sport(bbtype)
+        info   = round_info[rid]
+        home   = info["home"]
+        away   = info["away"]
+        bbtype = info["bbtype"]
+        sport  = _sport(bbtype)
 
         # 원하는 bet_type 필터
-        if sport == 'baseball' and bet_type not in BASEBALL_TYPES:
-            continue
-        if sport == 'soccer' and bet_type not in SOCCER_TYPES:
-            continue
-        if sport == 'basketball' and bet_type not in BASKET_TYPES:
-            continue
+        if sport == 'baseball'   and bet_type not in BASEBALL_TYPES: continue
+        if sport == 'soccer'     and bet_type not in SOCCER_TYPES:   continue
+        if sport == 'basketball' and bet_type not in BASKET_TYPES:   continue
 
-        if key not in games:
+        if rid not in games:
             league = _league(bbtype)
 
-            # game_date 계산 (KST 날짜 문자열)
+            # game_date: match_start_timestamp → KST 날짜
             game_date = ""
-            ts = game_timestamp.get(key)
+            ts = info.get("ts")
             if ts:
                 try:
-                    game_date = datetime.fromtimestamp(ts, tz=KST).strftime("%Y-%m-%d")
+                    game_date = datetime.fromtimestamp(int(ts), tz=KST).strftime("%Y-%m-%d")
                 except Exception:
                     pass
 
             if sport == 'soccer':
                 home_abbr = _abbrev_soccer(home)
                 away_abbr = _abbrev_soccer(away)
-                if not home_abbr:
-                    unmatched.add(f"{league}:{_normalize(home)}")
-                if not away_abbr:
-                    unmatched.add(f"{league}:{_normalize(away)}")
+                if not home_abbr: unmatched.add(f"{league}:{_normalize(home)}")
+                if not away_abbr: unmatched.add(f"{league}:{_normalize(away)}")
             else:
-                home_abbr = _abbrev(home)
-                if not home_abbr:  # source_name 폴백
-                    home_abbr = _abbrev((item.get("home_team_source_name") or "").strip())
-                away_abbr = _abbrev(away)
-                if not away_abbr:
-                    away_abbr = _abbrev((item.get("away_team_source_name") or "").strip())
+                # 짧은 이름 실패 시 source_name(풀네임) 폴백
+                home_abbr = _abbrev(home) or _abbrev(info["home_src"])
+                away_abbr = _abbrev(away) or _abbrev(info["away_src"])
                 if league in ('MLB', 'NBA', 'KBO', 'NPB'):
-                    if not home_abbr:
-                        unmatched.add(f"{league}:{_normalize(home)}")
-                    if not away_abbr:
-                        unmatched.add(f"{league}:{_normalize(away)}")
+                    if not home_abbr: unmatched.add(f"{league}:{_normalize(home)}")
+                    if not away_abbr: unmatched.add(f"{league}:{_normalize(away)}")
 
-            games[key] = {
-                "sport":     sport,
-                "league":    league,
-                "home":      home,
-                "away":      away,
-                "home_abbr": home_abbr,
-                "away_abbr": away_abbr,
+            games[rid] = {
+                "sport":     sport,   "league":    league,
+                "home":      home,    "away":      away,
+                "home_abbr": home_abbr, "away_abbr": away_abbr,
                 "game_date": game_date,
                 "ml_bets_home": None, "ml_bets_away": None, "ml_bets_draw": None,
                 "sp_bets_home": None, "sp_bets_away": None,
@@ -453,23 +456,19 @@ def parse_odds(items: list) -> list[dict]:
                 "updated_at": datetime.now(KST).isoformat(),
             }
 
-        g = games[key]
+        g = games[rid]
         has_draw = bool(d and d > 0)
 
         if bet_type == "winLose":
             if sport == 'soccer':
-                # 축구 승무패: 무승부 포함(d>0)인 3way만 사용
-                if not has_draw:
-                    continue
+                if not has_draw: continue          # 축구: 무승부 없는 2way 스킵
                 if g["ml_bets_home"] is None:
                     total = (w or 0) + d + (l or 0)
                     g["ml_bets_home"] = _pct(w, total)
                     g["ml_bets_draw"] = _pct(d, total)
                     g["ml_bets_away"] = _pct(l, total)
             else:
-                # 야구·농구 승패: 무승부 없는 2way만 사용
-                if has_draw:
-                    continue
+                if has_draw: continue              # 야구·농구: 승무패 3way 스킵
                 if g["ml_bets_home"] is None:
                     total2 = (w or 0) + (l or 0)
                     g["ml_bets_home"] = _pct(w, total2)
