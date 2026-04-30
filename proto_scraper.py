@@ -460,6 +460,28 @@ async def scrape_proto(page) -> list[dict]:
         return []
 
     print(f"GraphQL odds 항목 {len(odds_data)}건 캡처")
+
+    # ── 실제 필드 구조 확인용 로그 (첫 5개 항목 전체 출력) ──
+    import json as _json
+    if odds_data:
+        print("\n[DEBUG] 첫 번째 항목 전체 필드:")
+        print(_json.dumps(odds_data[0], ensure_ascii=False, indent=2))
+        # 모든 항목에서 등장하는 고유 필드 목록
+        all_keys = set()
+        for item in odds_data:
+            all_keys.update(item.keys())
+        print(f"\n[DEBUG] 전체 필드 목록: {sorted(all_keys)}")
+        # bet_type 고유값 확인
+        bet_types = set(item.get("bet_type") for item in odds_data)
+        print(f"[DEBUG] bet_type 고유값: {sorted(str(x) for x in bet_types)}")
+        # MLB 항목 샘플 (전반 필터 확인)
+        mlb_items = [i for i in odds_data if (i.get("bbtype") or "").upper() == "MLB"][:5]
+        if mlb_items:
+            print(f"\n[DEBUG] MLB 샘플 항목 5개:")
+            for it in mlb_items:
+                print(_json.dumps(it, ensure_ascii=False))
+    # ── 로그 끝 ──────────────────────────────────────────────
+
     games = parse_odds(odds_data)
 
     # 스포츠별 샘플 출력
