@@ -1382,6 +1382,20 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       if (!protoSport) return null
 
       const norm = s => (s || '').trim().toLowerCase()
+      const orientProto = (p, reversed = false) => {
+        if (!p || !reversed) return p
+        return {
+          ...p,
+          home: p.away,
+          away: p.home,
+          home_abbr: p.away_abbr,
+          away_abbr: p.home_abbr,
+          ml_bets_home: p.ml_bets_away,
+          ml_bets_away: p.ml_bets_home,
+          sp_bets_home: p.sp_bets_away,
+          sp_bets_away: p.sp_bets_home,
+        }
+      }
       // 6시간 이상 된 데이터는 스테일로 간주 → 표시 안 함
       const STALE_MS = 6 * 60 * 60 * 1000
       const isRecent = p => !p.updated_at || (Date.now() - new Date(p.updated_at).getTime()) < STALE_MS
@@ -1403,8 +1417,18 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
           p.league === game.league &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
           p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
+        const reverseFilter = p =>
+          p.sport === protoSport &&
+          p.league === game.league &&
+          p.home_abbr?.toUpperCase() === awayAbbr.toUpperCase() &&
+          p.away_abbr?.toUpperCase() === homeAbbr.toUpperCase()
         let found = protoData.find(p => baseFilter(p) && matchDate(p))
+        if (found && isRecent(found)) return found
+        found = protoData.find(p => reverseFilter(p) && matchDate(p))
+        if (found && isRecent(found)) return orientProto(found, true)
         if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
+        if (!found) found = protoData.find(p => reverseFilter(p))
+        if (found && reverseFilter(found) && isRecent(found)) return orientProto(found, true)
         return (found && isRecent(found)) ? found : null
       }
       // KBO/NPB/soccer: home_abbr = Pinnacle 영문 팀명과 직접 비교
@@ -1412,8 +1436,17 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.home) &&
         norm(p.away_abbr) === norm(game.away)
+      const reverseFilter = p =>
+        p.sport === protoSport &&
+        norm(p.home_abbr) === norm(game.away) &&
+        norm(p.away_abbr) === norm(game.home)
       let found = protoData.find(p => baseFilter(p) && matchDate(p))
+      if (found && isRecent(found)) return found
+      found = protoData.find(p => reverseFilter(p) && matchDate(p))
+      if (found && isRecent(found)) return orientProto(found, true)
       if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
+      if (!found) found = protoData.find(p => reverseFilter(p))
+      if (found && reverseFilter(found) && isRecent(found)) return orientProto(found, true)
       return (found && isRecent(found)) ? found : null
     }
 

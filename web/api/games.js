@@ -5,6 +5,21 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_KEY
 )
 
+function mirrorProtoBetting(rows = []) {
+  const mirrored = rows.map(row => ({
+    ...row,
+    home: row.away,
+    away: row.home,
+    home_abbr: row.away_abbr,
+    away_abbr: row.home_abbr,
+    ml_bets_home: row.ml_bets_away,
+    ml_bets_away: row.ml_bets_home,
+    sp_bets_home: row.sp_bets_away,
+    sp_bets_away: row.sp_bets_home,
+  }))
+  return [...rows, ...mirrored]
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -33,7 +48,7 @@ export default async function handler(req, res) {
       openings:      openingsRes.data || [],
       alerts:        alertsRes.data   || [],
       publicBetting: pbRes.data       || [],
-      protoBetting:  protoRes.data    || [],
+      protoBetting:  mirrorProtoBetting(protoRes.data || []),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
