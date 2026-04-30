@@ -1,9 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_KEY = process.env.VITE_SUPABASE_KEY
 
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_KEY
-)
+async function supabaseGet(path) {
+  const url = `${SUPABASE_URL}/rest/v1/${path}`
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+  })
+  if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`)
+  return res.json()
+}
 
 function mirrorProtoBetting(rows = []) {
   const mirrored = rows.map(row => ({
@@ -41,32 +49,31 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Cache-Control', 'no-store, max-age=0')
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  // Vercel CDN이 10분간 캐시 → Supabase는 10분마다 1번만 호출
-  res.setHeader('Cache-Control', 'no-store, max-age=0')
-
   try {
-    const [linesRes, alertsRes, pbRes, protoRes] = await Promise.all([
-      supabase.from('latest_lines').select('*').order('starts_at', { ascending: true }),
-      supabase.from('alerts').select('matchup_id,alert_type,threshold').order('id', { ascending: false }).limit(500),
-      supabase.from('public_betting').select('*'),
-      supabase.from('proto_betting').select('*'),
+    const [lines, alerts, publicBetting, protoRows] = await Promise.all([
+      supabaseGet('latest_lines?select=*&order=starts_at.asc'),
+      supabaseGet('alerts?select=matchup_id,alert_type,threshold&order=id.desc&limit=500'),
+      supabaseGet('public_betting?select=*'),
+      supabaseGet('proto_betting?select=*'),
     ])
 
-    const currentIds = [...new Set((linesRes.data || []).map(g => g.matchup_id))]
-    const openingsRes = await supabase
-      .from('opening_lines')
-      .select('matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under')
-      .in('matchup_id', currentIds)
+    const currentIds = [...new Set((lines || []).map(g => g.matchup_id))]
+    const openings = currentIds.length
+      ? await supabaseGet(
+          `opening_lines?select=matchup_id,ml_home,ml_away,ml_draw,sp_pts,sp_home,sp_away,ou_pts,ou_over,ou_under&matchup_id=in.(${currentIds.join(',')})`
+        )
+      : []
 
     res.json({
       apiVersion: 'proto-date-expanded-v2',
-      lines:         linesRes.data    || [],
-      openings:      openingsRes.data || [],
-      alerts:        alertsRes.data   || [],
-      publicBetting: pbRes.data       || [],
-      protoBetting:  mirrorProtoBetting(protoRes.data || []),
+      lines: lines || [],
+      openings: openings || [],
+      alerts: alerts || [],
+      publicBetting: publicBetting || [],
+      protoBetting: mirrorProtoBetting(protoRows || []),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
