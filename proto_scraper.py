@@ -347,21 +347,37 @@ def _league(bbtype: str) -> str:
     return bbtype.upper()
 
 
+def _proto_game_key(item: dict) -> str | None:
+    home = (item.get("home_team_name") or "").strip()
+    away = (item.get("away_team_name") or "").strip()
+    if not home or not away or home == "미정" or away == "미정":
+        return None
+    bbtype = (item.get("bbtype") or "").lower()
+    ts = item.get("match_start_timestamp") or ""
+    return "|".join([bbtype, home, away, str(ts)])
+
+
+def _safe_int(value):
+    try:
+        return int(value)
+    except Exception:
+        return None
+
+
 def parse_odds(items: list) -> list[dict]:
     """GraphQL odds 항목 리스트 → game dict 리스트
-    round_id = 경기 고유 ID. 같은 경기의 모든 bet 항목이 동일 round_id 공유.
-    round_id 기준으로 묶어야 3연전/더블헤더에서 Game1·2·3가 올바르게 분리됨.
+    round_id는 경기 고유 ID가 아니라 프로토 회차/배치 ID다.
+    실제 경기는 종목+홈팀+원정팀+시작시간 기준으로 묶는다.
     """
 
-    # ── 1단계: round_id별 최소 sub_id + 경기 기본 정보 수집 ──────────────
-    round_min_sub: dict[str, int]  = {}
-    round_info:    dict[str, dict] = {}
+    # ── 1단계: 경기별 최소 sub_id + 경기 기본 정보 수집 ──────────────
+    game_min_sub: dict[str, int]  = {}
+    game_info:    dict[str, dict] = {}
 
     for item in items:
-        _rid = item.get("round_id")
-        if _rid is None:
+        game_key = _proto_game_key(item)
+        if not game_key:
             continue
-        rid = str(_rid)
         home = (item.get("home_team_name") or "").strip()
         away = (item.get("away_team_name") or "").strip()
         if not home or not away or home == "미정" or away == "미정":
@@ -369,11 +385,13 @@ def parse_odds(items: list) -> list[dict]:
         sub_id = item.get("sub_id")
         if sub_id is None:
             continue
-        sid = int(sub_id)
-        if rid not in round_min_sub or sid < round_min_sub[rid]:
-            round_min_sub[rid] = sid
-        if rid not in round_info:
-            round_info[rid] = {
+        sid = _safe_int(sub_id)
+        if sid is None:
+            continue
+        if game_key not in game_min_sub or sid < game_min_sub[game_key]:
+            game_min_sub[game_key] = sid
+        if game_key not in game_info:
+            game_info[game_key] = {
                 "home":     home,
                 "away":     away,
                 "home_src": (item.get("home_team_source_name") or "").strip(),
@@ -386,23 +404,25 @@ def parse_odds(items: list) -> list[dict]:
     # sub_id 오름차순 처리 → 전체경기(낮은 sub_id) 먼저, 전반(높은 sub_id) 나중
     # offset > 4 이상은 전반 옵션(전반승패·전반언오버 등) → 스킵
     # 각 bet_type은 첫 번째 발생값만 저장 (is None 체크) → 전반이 남아도 덮어쓰기 없음
-    items_sorted = sorted(items, key=lambda x: int(x.get("sub_id") or 0))
+    items_sorted = sorted(items, key=lambda x: _safe_int(x.get("sub_id")) or 0)
 
     games: dict[str, dict] = {}
     unmatched = set()
 
     for item in items_sorted:
-        _rid = item.get("round_id")
-        if _rid is None:
+        game_key = _proto_game_key(item)
+        if not game_key:
             continue
-        rid = str(_rid)
-        if rid not in round_min_sub:
+        if game_key not in game_min_sub:
             continue
 
-        # 전반 옵션 제외: 해당 round의 min sub_id 기준 offset > 4
+        # 전반 옵션 제외: 해당 경기의 min sub_id 기준 offset > 4
         sub_id = item.get("sub_id")
         if sub_id is not None:
-            offset = int(sub_id) - round_min_sub[rid]
+            sid = _safe_int(sub_id)
+            if sid is None:
+                continue
+            offset = sid - game_min_sub[game_key]
             if offset > 4:
                 continue
 
@@ -413,7 +433,7 @@ def parse_odds(items: list) -> list[dict]:
         if w is None and d is None and l is None:
             continue
 
-        info   = round_info[rid]
+        info   = game_info[game_key]
         home   = info["home"]
         away   = info["away"]
         bbtype = info["bbtype"]
@@ -424,7 +444,7 @@ def parse_odds(items: list) -> list[dict]:
         if sport == 'soccer'     and bet_type not in SOCCER_TYPES:   continue
         if sport == 'basketball' and bet_type not in BASKET_TYPES:   continue
 
-        if rid not in games:
+        if game_key not in games:
             league = _league(bbtype)
 
             # game_date: match_start_timestamp → KST 날짜
@@ -449,7 +469,7 @@ def parse_odds(items: list) -> list[dict]:
                     if not home_abbr: unmatched.add(f"{league}:{_normalize(home)}")
                     if not away_abbr: unmatched.add(f"{league}:{_normalize(away)}")
 
-            games[rid] = {
+            games[game_key] = {
                 "sport":     sport,   "league":    league,
                 "home":      home,    "away":      away,
                 "home_abbr": home_abbr, "away_abbr": away_abbr,
@@ -460,7 +480,7 @@ def parse_odds(items: list) -> list[dict]:
                 "updated_at": datetime.now(KST).isoformat(),
             }
 
-        g = games[rid]
+        g = games[game_key]
         has_draw = bool(d and d > 0)
 
         if bet_type == "winLose":
