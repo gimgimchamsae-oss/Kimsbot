@@ -358,9 +358,10 @@ def parse_odds(items: list) -> list[dict]:
     round_info:    dict[str, dict] = {}
 
     for item in items:
-        rid = str(item.get("round_id") or "")
-        if not rid:
+        _rid = item.get("round_id")
+        if _rid is None:
             continue
+        rid = str(_rid)
         home = (item.get("home_team_name") or "").strip()
         away = (item.get("away_team_name") or "").strip()
         if not home or not away or home == "미정" or away == "미정":
@@ -391,8 +392,11 @@ def parse_odds(items: list) -> list[dict]:
     unmatched = set()
 
     for item in items_sorted:
-        rid = str(item.get("round_id") or "")
-        if not rid or rid not in round_min_sub:
+        _rid = item.get("round_id")
+        if _rid is None:
+            continue
+        rid = str(_rid)
+        if rid not in round_min_sub:
             continue
 
         # 전반 옵션 제외: 해당 round의 min sub_id 기준 offset > 4
