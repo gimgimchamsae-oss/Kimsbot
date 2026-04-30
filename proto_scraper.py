@@ -46,6 +46,36 @@ KR_ABBREV = {
     '콜로라도로키스': 'COL', '콜로라도 로키스': 'COL',
     'LAA': 'LAA', 'LAD': 'LAD',
     'LA에인절스': 'LAA', 'LA다저스': 'LAD',
+    # ── MLB 풀네임 (source_name 형태) ─────────────────────
+    '볼티모어오리올스': 'BAL', '볼티모어 오리올스': 'BAL',
+    '보스턴레드삭스': 'BOS', '보스턴 레드삭스': 'BOS',
+    '뉴욕양키스': 'NYY', '뉴욕 양키스': 'NYY',
+    '뉴욕메츠2': 'NYM', '뉴욕 메츠': 'NYM',
+    '탬파베이레이스': 'TB', '탬파베이 레이스': 'TB',
+    '토론토블루제이스': 'TOR', '토론토 블루제이스': 'TOR',
+    '클리블랜드가디언스': 'CLE', '클리블랜드 가디언스': 'CLE',
+    '시카고화이트삭스': 'CWS', '시카고 화이트삭스': 'CWS',
+    '시카고컵스': 'CHC', '시카고 컵스': 'CHC',
+    '디트로이트타이거스': 'DET', '디트로이트 타이거스': 'DET',
+    '캔자스시티로열스': 'KC', '캔자스시티 로열스': 'KC',
+    '미네소타트윈스': 'MIN', '미네소타 트윈스': 'MIN',
+    '휴스턴애스트로스': 'HOU', '휴스턴 애스트로스': 'HOU',
+    'LA에인절스': 'LAA', 'LA 에인절스': 'LAA',
+    'LA다저스': 'LAD', 'LA 다저스': 'LAD',
+    '새크라멘토애슬레틱스': 'ATH', '새크라멘토 애슬레틱스': 'ATH',
+    '샌디에이고파드리스': 'SD', '샌디에이고 파드리스': 'SD',
+    '샌프란시스코자이언츠': 'SF', '샌프란시스코 자이언츠': 'SF',
+    '시애틀매리너스': 'SEA', '시애틀 매리너스': 'SEA',
+    '텍사스레인저스': 'TEX', '텍사스 레인저스': 'TEX',
+    '애틀랜타브레이브스': 'ATL', '애틀랜타 브레이브스': 'ATL',
+    '마이애미말린스': 'MIA', '마이애미 말린스': 'MIA',
+    '필라델피아필리스': 'PHI', '필라델피아 필리스': 'PHI',
+    '워싱턴내셔널스': 'WSH', '워싱턴 내셔널스': 'WSH',
+    '밀워키브루어스': 'MIL', '밀워키 브루어스': 'MIL',
+    '신시내티레즈': 'CIN', '신시내티 레즈': 'CIN',
+    '피츠버그파이리츠': 'PIT', '피츠버그 파이리츠': 'PIT',
+    '세인트루이스카디널스': 'STL', '세인트루이스 카디널스': 'STL',
+    '애리조나다이아몬드백스': 'AZ', '애리조나 다이아몬드백스': 'AZ',
     # ── NBA 단축명 ─────────────────────────────────────
     '골든스테이트': 'GSW', 'LA클': 'LAC', 'LA레': 'LAL',
     '댈러스': 'DAL', '덴버': 'DEN', '인디애나': 'IND',
@@ -53,9 +83,15 @@ KR_ABBREV = {
     '오클라호마': 'OKC', '올랜도': 'ORL', '피닉스': 'PHX',
     '포틀랜드': 'POR', '새크라멘토': 'SAC', '샌안토니오': 'SAS',
     '유타': 'UTA', '브루클린': 'BKN', '샬럿': 'CHA',
-    # ── NBA 풀네임 (실제 previewn 표기) ─────────────────
-    '보스턴 셀틱스': 'BOS', '브루클린 네츠': 'BKN',
-    '뉴욕 닉스': 'NYK', '필라델피아 76': 'PHI', '필라델피아 76어스': 'PHI',
+    # ── NBA 풀네임 (실제 previewn 표기, 공백 있음/없음 양쪽) ──────────────
+    '보스턴 셀틱스': 'BOS', '보스턴셀틱스': 'BOS', '브루클린 네츠': 'BKN', '브루클린네츠': 'BKN',
+    '뉴욕 닉스': 'NYK', '뉴욕닉스': 'NYK',
+    '필라델피아 76': 'PHI', '필라델피아 76어스': 'PHI', '필라델피아76s': 'PHI', '필라델피아76어스': 'PHI',
+    '덴버 너게츠': 'DEN', '덴버너게츠': 'DEN',
+    '미네소타 팀버울브스': 'MIN', '미네소타팀버울브스': 'MIN',
+    '애틀랜타 호크스': 'ATL', '애틀랜타호크스': 'ATL',
+    '골든스테이트워리어스': 'GSW', 'LA클리퍼스': 'LAC', 'LA레이커스': 'LAL',
+    '오클라호마시티썬더': 'OKC', '포틀랜드트레일블레이저스': 'POR', '포틀랜드트레일': 'POR',
     '토론토 랩터스': 'TOR', '골든스테이트 워리어스': 'GSW',
     'LA 클리퍼스': 'LAC', 'LA 레이커스': 'LAL',
     '피닉스 선즈': 'PHX', '새크라멘토 킹스': 'SAC',
@@ -314,10 +350,9 @@ def _league(bbtype: str) -> str:
 def parse_odds(items: list) -> list[dict]:
     """GraphQL odds 항목 리스트 → game dict 리스트"""
 
-    # ── 1단계: 게임별 최소 sub_id 파악 (전반 옵션 걸러내기 위해) ──────────
-    # 같은 (bbtype, home, away) 그룹의 sub_id 중 최솟값이 그 게임의 시작점
-    # offset = sub_id - min_sub_id 가 5 이상이면 전반(후반 X) 옵션
-    game_min_sub: dict[tuple, int] = {}
+    # ── 1단계: 게임별 최소 sub_id + match_start_timestamp 파악 ──────────
+    game_min_sub:  dict[tuple, int] = {}
+    game_timestamp: dict[tuple, int] = {}
     for item in items:
         home = (item.get("home_team_name") or "").strip()
         away = (item.get("away_team_name") or "").strip()
@@ -331,6 +366,9 @@ def parse_odds(items: list) -> list[dict]:
         sid = int(sub_id)
         if key not in game_min_sub or sid < game_min_sub[key]:
             game_min_sub[key] = sid
+        ts = item.get("match_start_timestamp")
+        if ts and key not in game_timestamp:
+            game_timestamp[key] = int(ts)
 
     # ── 2단계: 전반 옵션 제외 후 집계 ────────────────────────────────────
     games: dict[tuple, dict] = {}
@@ -371,18 +409,30 @@ def parse_odds(items: list) -> list[dict]:
 
         if key not in games:
             league = _league(bbtype)
+
+            # game_date 계산 (KST 날짜 문자열)
+            game_date = ""
+            ts = game_timestamp.get(key)
+            if ts:
+                try:
+                    game_date = datetime.fromtimestamp(ts, tz=KST).strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+
             if sport == 'soccer':
                 home_abbr = _abbrev_soccer(home)
                 away_abbr = _abbrev_soccer(away)
-                # 미매핑 축구팀 로깅
                 if not home_abbr:
                     unmatched.add(f"{league}:{_normalize(home)}")
                 if not away_abbr:
                     unmatched.add(f"{league}:{_normalize(away)}")
             else:
                 home_abbr = _abbrev(home)
+                if not home_abbr:  # source_name 폴백
+                    home_abbr = _abbrev((item.get("home_team_source_name") or "").strip())
                 away_abbr = _abbrev(away)
-                # MLB/NBA/KBO/NPB 미매핑 팀명 기록
+                if not away_abbr:
+                    away_abbr = _abbrev((item.get("away_team_source_name") or "").strip())
                 if league in ('MLB', 'NBA', 'KBO', 'NPB'):
                     if not home_abbr:
                         unmatched.add(f"{league}:{_normalize(home)}")
@@ -390,12 +440,13 @@ def parse_odds(items: list) -> list[dict]:
                         unmatched.add(f"{league}:{_normalize(away)}")
 
             games[key] = {
-                "sport":   sport,
-                "league":  league,
-                "home":    home,
-                "away":    away,
+                "sport":     sport,
+                "league":    league,
+                "home":      home,
+                "away":      away,
                 "home_abbr": home_abbr,
                 "away_abbr": away_abbr,
+                "game_date": game_date,
                 "ml_bets_home": None, "ml_bets_away": None, "ml_bets_draw": None,
                 "sp_bets_home": None, "sp_bets_away": None,
                 "ou_bets_over": None, "ou_bets_under": None,
@@ -403,15 +454,23 @@ def parse_odds(items: list) -> list[dict]:
             }
 
         g = games[key]
+        has_draw = bool(d and d > 0)
 
         if bet_type == "winLose":
-            if g["ml_bets_home"] is None:
-                total = (w or 0) + (d or 0) + (l or 0)
-                if sport == 'soccer' and d is not None:
+            if sport == 'soccer':
+                # 축구 승무패: 무승부 포함(d>0)인 3way만 사용
+                if not has_draw:
+                    continue
+                if g["ml_bets_home"] is None:
+                    total = (w or 0) + d + (l or 0)
                     g["ml_bets_home"] = _pct(w, total)
                     g["ml_bets_draw"] = _pct(d, total)
                     g["ml_bets_away"] = _pct(l, total)
-                else:
+            else:
+                # 야구·농구 승패: 무승부 없는 2way만 사용
+                if has_draw:
+                    continue
+                if g["ml_bets_home"] is None:
                     total2 = (w or 0) + (l or 0)
                     g["ml_bets_home"] = _pct(w, total2)
                     g["ml_bets_away"] = _pct(l, total2)
@@ -460,28 +519,6 @@ async def scrape_proto(page) -> list[dict]:
         return []
 
     print(f"GraphQL odds 항목 {len(odds_data)}건 캡처")
-
-    # ── 실제 필드 구조 확인용 로그 (첫 5개 항목 전체 출력) ──
-    import json as _json
-    if odds_data:
-        print("\n[DEBUG] 첫 번째 항목 전체 필드:")
-        print(_json.dumps(odds_data[0], ensure_ascii=False, indent=2))
-        # 모든 항목에서 등장하는 고유 필드 목록
-        all_keys = set()
-        for item in odds_data:
-            all_keys.update(item.keys())
-        print(f"\n[DEBUG] 전체 필드 목록: {sorted(all_keys)}")
-        # bet_type 고유값 확인
-        bet_types = set(item.get("bet_type") for item in odds_data)
-        print(f"[DEBUG] bet_type 고유값: {sorted(str(x) for x in bet_types)}")
-        # MLB 항목 샘플 (전반 필터 확인)
-        mlb_items = [i for i in odds_data if (i.get("bbtype") or "").upper() == "MLB"][:5]
-        if mlb_items:
-            print(f"\n[DEBUG] MLB 샘플 항목 5개:")
-            for it in mlb_items:
-                print(_json.dumps(it, ensure_ascii=False))
-    # ── 로그 끝 ──────────────────────────────────────────────
-
     games = parse_odds(odds_data)
 
     # 스포츠별 샘플 출력

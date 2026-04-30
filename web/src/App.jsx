@@ -1386,6 +1386,14 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       const STALE_MS = 6 * 60 * 60 * 1000
       const isRecent = p => !p.updated_at || (Date.now() - new Date(p.updated_at).getTime()) < STALE_MS
 
+      // starts_at "MM/DD HH:MM KST" → "MM/DD" (날짜 비교용)
+      const pinDate = game.starts_at ? game.starts_at.slice(0, 5) : null
+
+      const matchDate = p => {
+        if (!pinDate || !p.game_date) return true  // 한쪽 없으면 날짜 체크 스킵
+        return p.game_date.slice(5).replace('-', '/') === pinDate  // "04/30"
+      }
+
       if (game.league === 'MLB' || game.league === 'NBA') {
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
@@ -1394,7 +1402,8 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
           p.sport === protoSport &&
           p.league === game.league &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
-          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
+          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase() &&
+          matchDate(p)
         )
         return (found && isRecent(found)) ? found : null
       }
@@ -1402,37 +1411,21 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       const found = protoData.find(p =>
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.home) &&
-        norm(p.away_abbr) === norm(game.away)
+        norm(p.away_abbr) === norm(game.away) &&
+        matchDate(p)
       )
       return (found && isRecent(found)) ? found : null
     }
 
-    // MLB/NBA 시리즈 중복 추적: 같은 팀조합이 이미 나온 경우 2번째부터 proto 표시 안 함
-    const seenProtoKey = new Set()
-    const filteredLines = linesData.filter(g =>
+    const merged = linesData.filter(g =>
       !/(Games\))/i.test(g.home || '') && !/(Games\))/i.test(g.away || '')
-    )
-    const merged = filteredLines.map(g => {
-      let protoBetting = null
-      if (g.league === 'MLB' || g.league === 'NBA') {
-        const hA = TEAM_ABBREV[g.home] || ''
-        const aA = TEAM_ABBREV[g.away] || ''
-        const pKey = `${g.league}:${hA}:${aA}`
-        if (hA && aA && !seenProtoKey.has(pKey)) {
-          seenProtoKey.add(pKey)
-          protoBetting = findProto(g)
-        }
-      } else {
-        protoBetting = findProto(g)
-      }
-      return {
-        ...g,
-        opening:      openingsMap[g.matchup_id] || null,
-        recentAlerts: alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
-        publicBetting: findPb(g),
-        protoBetting,
-      }
-    })
+    ).map(g => ({
+      ...g,
+      opening:       openingsMap[g.matchup_id] || null,
+      recentAlerts:  alertsMap[g.matchup_id] ? Object.values(alertsMap[g.matchup_id]) : [],
+      publicBetting: findPb(g),
+      protoBetting:  findProto(g),
+    }))
     setGames(merged)
     setLastUpdate(new Date().toLocaleTimeString('ko-KR'))
     if (!silent) setLoading(false)
