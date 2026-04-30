@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   // Vercel CDN이 10분간 캐시 → Supabase는 10분마다 1번만 호출
-  res.setHeader('Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
+  res.setHeader('Cache-Control', 'no-store, max-age=0')
 
   try {
     const [linesRes, alertsRes, pbRes, protoRes] = await Promise.all([
