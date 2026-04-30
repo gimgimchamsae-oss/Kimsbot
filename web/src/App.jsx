@@ -1398,22 +1398,22 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
         const homeAbbr = TEAM_ABBREV[game.home] || ''
         const awayAbbr = TEAM_ABBREV[game.away] || ''
         if (!homeAbbr || !awayAbbr) return null
-        const found = protoData.find(p =>
+        const baseFilter = p =>
           p.sport === protoSport &&
           p.league === game.league &&
           p.home_abbr?.toUpperCase() === homeAbbr.toUpperCase() &&
-          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase() &&
-          matchDate(p)
-        )
+          p.away_abbr?.toUpperCase() === awayAbbr.toUpperCase()
+        let found = protoData.find(p => baseFilter(p) && matchDate(p))
+        if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
         return (found && isRecent(found)) ? found : null
       }
       // KBO/NPB/soccer: home_abbr = Pinnacle 영문 팀명과 직접 비교
-      const found = protoData.find(p =>
+      const baseFilter = p =>
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.home) &&
-        norm(p.away_abbr) === norm(game.away) &&
-        matchDate(p)
-      )
+        norm(p.away_abbr) === norm(game.away)
+      let found = protoData.find(p => baseFilter(p) && matchDate(p))
+      if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
       return (found && isRecent(found)) ? found : null
     }
 
