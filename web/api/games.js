@@ -5,6 +5,30 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_KEY
 )
 
+const TEAM_ABBREV = {
+  'Arizona Diamondbacks':'AZ','Atlanta Braves':'ATL','Baltimore Orioles':'BAL',
+  'Boston Red Sox':'BOS','Chicago Cubs':'CHC','Chicago White Sox':'CWS',
+  'Cincinnati Reds':'CIN','Cleveland Guardians':'CLE','Colorado Rockies':'COL',
+  'Detroit Tigers':'DET','Houston Astros':'HOU','Kansas City Royals':'KC',
+  'Los Angeles Angels':'LAA','Los Angeles Dodgers':'LAD','Miami Marlins':'MIA',
+  'Milwaukee Brewers':'MIL','Minnesota Twins':'MIN','New York Mets':'NYM',
+  'New York Yankees':'NYY','Athletics':'ATH','Oakland Athletics':'ATH',
+  'Philadelphia Phillies':'PHI','Pittsburgh Pirates':'PIT','San Diego Padres':'SD',
+  'San Francisco Giants':'SF','Seattle Mariners':'SEA','St. Louis Cardinals':'STL',
+  'Tampa Bay Rays':'TB','Texas Rangers':'TEX','Toronto Blue Jays':'TOR',
+  'Washington Nationals':'WSH',
+  'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN',
+  'Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE',
+  'Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET',
+  'Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND',
+  'Los Angeles Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM',
+  'Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN',
+  'New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC',
+  'Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX',
+  'Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS',
+  'Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WSH',
+}
+
 function mirrorProtoBetting(rows = []) {
   const mirrored = rows.map(row => ({
     ...row,
@@ -37,6 +61,49 @@ function expandProtoDates(rows = []) {
     { ...row, game_date: shiftDate(row.game_date, 1) },
     { ...row, game_date: shiftDate(row.game_date, 2) },
   ])
+}
+
+function lineGameDate(startsAt) {
+  const match = String(startsAt || '').match(/^(\d{2})\/(\d{2})/)
+  if (!match) return ''
+  const year = new Date().getFullYear()
+  return `${year}-${match[1]}-${match[2]}`
+}
+
+function buildLineCompatibleProto(lines = [], protoRows = []) {
+  const compat = []
+  for (const game of lines) {
+    if (game.league !== 'MLB' && game.league !== 'NBA') continue
+    if (/(Games\))/i.test(game.home || '') || /(Games\))/i.test(game.away || '')) continue
+    const homeAbbr = TEAM_ABBREV[game.home]
+    const awayAbbr = TEAM_ABBREV[game.away]
+    if (!homeAbbr || !awayAbbr) continue
+    const protoSport = game.sport === 'baseball' ? 'baseball' : game.sport === 'basketball' ? 'basketball' : null
+    if (!protoSport) continue
+    const found = protoRows.find(row =>
+      row.sport === protoSport &&
+      row.league === game.league &&
+      (
+        (row.home_abbr === homeAbbr && row.away_abbr === awayAbbr) ||
+        (row.home_abbr === awayAbbr && row.away_abbr === homeAbbr)
+      )
+    )
+    if (!found) continue
+    const reversed = found.home_abbr === awayAbbr && found.away_abbr === homeAbbr
+    compat.push({
+      ...found,
+      home: reversed ? found.away : found.home,
+      away: reversed ? found.home : found.away,
+      home_abbr: homeAbbr,
+      away_abbr: awayAbbr,
+      game_date: lineGameDate(game.starts_at),
+      ml_bets_home: reversed ? found.ml_bets_away : found.ml_bets_home,
+      ml_bets_away: reversed ? found.ml_bets_home : found.ml_bets_away,
+      sp_bets_home: reversed ? found.sp_bets_away : found.sp_bets_home,
+      sp_bets_away: reversed ? found.sp_bets_home : found.sp_bets_away,
+    })
+  }
+  return [...compat, ...mirrorProtoBetting(protoRows)]
 }
 
 export default async function handler(req, res) {
@@ -72,7 +139,7 @@ export default async function handler(req, res) {
       openings:      openingsRes.data || [],
       alerts:        alertsRes.data   || [],
       publicBetting: pbRes.data       || [],
-      protoBetting:  mirrorProtoBetting(protoRes.data || []),
+      protoBetting:  buildLineCompatibleProto(linesRes.data || [], protoRes.data || []),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
