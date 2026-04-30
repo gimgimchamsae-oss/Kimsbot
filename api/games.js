@@ -38,10 +38,12 @@ function shiftDate(date, days) {
 
 function expandProtoDates(rows = []) {
   return rows.flatMap(row => [
-    row,
-    { ...row, game_date: shiftDate(row.game_date, -1) },
-    { ...row, game_date: shiftDate(row.game_date, 1) },
     { ...row, game_date: '' },
+    { ...row, game_date: shiftDate(row.game_date, -2) },
+    { ...row, game_date: shiftDate(row.game_date, -1) },
+    row,
+    { ...row, game_date: shiftDate(row.game_date, 1) },
+    { ...row, game_date: shiftDate(row.game_date, 2) },
   ])
 }
 
