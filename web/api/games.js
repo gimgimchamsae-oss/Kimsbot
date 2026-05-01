@@ -78,6 +78,16 @@ function lineGameDate(startsAt) {
   return `${year}-${match[1]}-${match[2]}`
 }
 
+function todayKstDate() {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
+  return kst.toISOString().slice(0, 10)
+}
+
+function isCurrentOrFutureLine(game) {
+  const gameDate = lineGameDate(game.starts_at)
+  return !gameDate || gameDate >= todayKstDate()
+}
+
 function normTeam(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 }
@@ -140,6 +150,7 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
 function findProtoUnmatched(lines = [], protoRows = []) {
   return lines
     .filter(game => !/(Games\))/i.test(game.home || '') && !/(Games\))/i.test(game.away || ''))
+    .filter(isCurrentOrFutureLine)
     .map(game => {
       const names = lineTeamNames(game)
       const protoSport = protoSportForGame(game)
