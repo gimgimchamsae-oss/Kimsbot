@@ -86,26 +86,49 @@ function lineGameDate(startsAt) {
   return `${year}-${match[1]}-${match[2]}`
 }
 
+function normTeam(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+function protoSportForGame(game) {
+  if (game.sport === 'baseball') return 'baseball'
+  if (game.sport === 'basketball') return 'basketball'
+  if (game.sport === 'soccer') return 'soccer'
+  return null
+}
+
+function lineTeamNames(game) {
+  if (game.league === 'MLB' || game.league === 'NBA') {
+    const homeAbbr = TEAM_ABBREV[game.home]
+    const awayAbbr = TEAM_ABBREV[game.away]
+    if (!homeAbbr || !awayAbbr) return null
+    return { homeAbbr, awayAbbr }
+  }
+  if (game.sport === 'soccer') {
+    return { homeAbbr: game.home, awayAbbr: game.away }
+  }
+  return null
+}
+
 function buildLineCompatibleProto(lines = [], protoRows = []) {
   const compat = []
   for (const game of lines) {
-    if (game.league !== 'MLB' && game.league !== 'NBA') continue
     if (/(Games\))/i.test(game.home || '') || /(Games\))/i.test(game.away || '')) continue
-    const homeAbbr = TEAM_ABBREV[game.home]
-    const awayAbbr = TEAM_ABBREV[game.away]
-    if (!homeAbbr || !awayAbbr) continue
-    const protoSport = game.sport === 'baseball' ? 'baseball' : game.sport === 'basketball' ? 'basketball' : null
+    const names = lineTeamNames(game)
+    if (!names) continue
+    const { homeAbbr, awayAbbr } = names
+    const protoSport = protoSportForGame(game)
     if (!protoSport) continue
     const found = protoRows.find(row =>
       row.sport === protoSport &&
-      row.league === game.league &&
+      (protoSport === 'soccer' || row.league === game.league) &&
       (
-        (row.home_abbr === homeAbbr && row.away_abbr === awayAbbr) ||
-        (row.home_abbr === awayAbbr && row.away_abbr === homeAbbr)
+        (normTeam(row.home_abbr) === normTeam(homeAbbr) && normTeam(row.away_abbr) === normTeam(awayAbbr)) ||
+        (normTeam(row.home_abbr) === normTeam(awayAbbr) && normTeam(row.away_abbr) === normTeam(homeAbbr))
       )
     )
     if (!found) continue
-    const reversed = found.home_abbr === awayAbbr && found.away_abbr === homeAbbr
+    const reversed = normTeam(found.home_abbr) === normTeam(awayAbbr) && normTeam(found.away_abbr) === normTeam(homeAbbr)
     compat.push({
       ...found,
       home: reversed ? found.away : found.home,
