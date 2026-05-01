@@ -238,11 +238,13 @@ KR_SOCCER: dict[str, str] = {
     '헐시티': 'Hull City', '옥스퍼드유나이티드': 'Oxford United',
     '프레스턴노스엔드': 'Preston North End',
     # ── K리그 1 ──────────────────────────────────────
-    'FC서울': 'FC Seoul', '울산HDFC': 'Ulsan HD', '전북현대모터스': 'Jeonbuk Hyundai',
-    '전북 현대모터스': 'Jeonbuk Hyundai', '포항스틸러스': 'Pohang Steelers',
+    'FC서울': 'FC Seoul', '울산HDFC': 'Ulsan HD', '전북현대모터스': 'Jeonbuk Motors',
+    '전북 현대모터스': 'Jeonbuk Motors', '전북현대': 'Jeonbuk Motors',
+    '전북 현대': 'Jeonbuk Motors', '포항스틸러스': 'Pohang Steelers',
     '인천유나이티드': 'Incheon United', '강원FC': 'Gangwon',
     '광주FC': 'Gwangju FC', '대전하나시티즌': 'Daejeon Citizen',
-    '제주SKFC': 'Jeju United', '김천상무프로축구단': 'Gimcheon Sangmu',
+    '제주SKFC': 'Jeju SK', '제주SK': 'Jeju SK', '제주 SK': 'Jeju SK',
+    '김천상무프로축구단': 'Gimcheon Sangmu',
     '수원삼성블루윙즈': 'Suwon Samsung',
     # ── K리그 2 / lower ──────────────────────────────
     '성남FC': 'Seongnam FC', '부산아이파크': 'Busan IPark',
