@@ -145,6 +145,41 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
   return [...compat, ...mirrorProtoBetting(protoRows)]
 }
 
+function findProtoUnmatched(lines = [], protoRows = []) {
+  return lines
+    .filter(game => !/(Games\))/i.test(game.home || '') && !/(Games\))/i.test(game.away || ''))
+    .map(game => {
+      const names = lineTeamNames(game)
+      const protoSport = protoSportForGame(game)
+      if (!names || !protoSport) return null
+      const { homeAbbr, awayAbbr } = names
+      const matched = protoRows.some(row =>
+        row.sport === protoSport &&
+        (protoSport === 'soccer' || row.league === game.league) &&
+        (
+          (normTeam(row.home_abbr) === normTeam(homeAbbr) && normTeam(row.away_abbr) === normTeam(awayAbbr)) ||
+          (normTeam(row.home_abbr) === normTeam(awayAbbr) && normTeam(row.away_abbr) === normTeam(homeAbbr))
+        )
+      )
+      if (matched) return null
+      const candidates = protoRows
+        .filter(row => row.sport === protoSport && (protoSport === 'soccer' || row.league === game.league))
+        .slice(0, 5)
+        .map(row => `${row.home_abbr} vs ${row.away_abbr}`)
+      return {
+        sport: game.sport,
+        league: game.league,
+        home: game.home,
+        away: game.away,
+        starts_at: game.starts_at,
+        expected_home: homeAbbr,
+        expected_away: awayAbbr,
+        candidates,
+      }
+    })
+    .filter(Boolean)
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -171,13 +206,16 @@ export default async function handler(req, res) {
         )
       : []
 
+    const normalizedProtoRows = normalizeProtoOu(protoRows || [])
+
     res.json({
-      apiVersion: 'proto-date-expanded-v2',
+      apiVersion: 'proto-debug-unmatched-v1',
       lines: lines || [],
       openings: openings || [],
       alerts: alerts || [],
       publicBetting: publicBetting || [],
-      protoBetting: buildLineCompatibleProto(lines || [], normalizeProtoOu(protoRows || [])),
+      protoBetting: buildLineCompatibleProto(lines || [], normalizedProtoRows),
+      protoUnmatched: findProtoUnmatched(lines || [], normalizedProtoRows),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
