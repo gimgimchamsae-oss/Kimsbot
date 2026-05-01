@@ -63,6 +63,14 @@ function expandProtoDates(rows = []) {
   ])
 }
 
+function normalizeProtoOu(rows = []) {
+  return rows.map(row => ({
+    ...row,
+    ou_bets_over: row.ou_bets_under,
+    ou_bets_under: row.ou_bets_over,
+  }))
+}
+
 function lineGameDate(startsAt) {
   const match = String(startsAt || '').match(/^(\d{2})\/(\d{2})/)
   if (!match) return ''
@@ -139,7 +147,7 @@ export default async function handler(req, res) {
       openings:      openingsRes.data || [],
       alerts:        alertsRes.data   || [],
       publicBetting: pbRes.data       || [],
-      protoBetting:  buildLineCompatibleProto(linesRes.data || [], protoRes.data || []),
+      protoBetting:  buildLineCompatibleProto(linesRes.data || [], normalizeProtoOu(protoRes.data || [])),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
