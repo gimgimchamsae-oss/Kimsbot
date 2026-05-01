@@ -96,8 +96,32 @@ function isCurrentOrFutureLine(game) {
   return !gameDate || gameDate >= todayKstDate()
 }
 
+const SOCCER_TEAM_ALIASES = {
+  oaklandfc: 'aucklandfc',
+  gangwon: 'gangwonfc',
+  fcanyang: 'anyang',
+  bucheonfc: 'bucheonfc1995',
+  gimpo: 'gimpofc',
+  gyeongnam: 'gyeongnamfc',
+  hwaseong: 'hwaseongfc',
+  gimhae: 'gimhaefc',
+  yongin: 'yonginfc',
+  cheongjufc: 'chungbukcheongju',
+  suwonbluewings: 'suwonsamsung',
+  lafc: 'losangelesfc',
+  lagalaxy: 'losangelesgalaxy',
+  newyorkcityfc: 'newyorkcity',
+  stlouiscity: 'stlouiscitysc',
+  inter: 'internazionale',
+  intermilian: 'internazionale',
+  intermilano: 'internazionale',
+  intermilans: 'internazionale',
+  intermilan: 'internazionale',
+}
+
 function normTeam(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const key = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return SOCCER_TEAM_ALIASES[key] || key
 }
 
 function protoSportForGame(game) {
