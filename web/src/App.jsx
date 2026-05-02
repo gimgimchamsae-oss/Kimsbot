@@ -1457,8 +1457,8 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
           sp_bets_away: p.sp_bets_home,
         }
       }
-      // 6시간 이상 된 데이터는 스테일로 간주 → 표시 안 함
-      const STALE_MS = 6 * 60 * 60 * 1000
+      // 경기 당일 새벽에 수집된 국내구매율도 오후 경기 시그널에 사용
+      const STALE_MS = 36 * 60 * 60 * 1000
       const isRecent = p => !p.updated_at || (Date.now() - new Date(p.updated_at).getTime()) < STALE_MS
 
       // starts_at "MM/DD HH:MM KST" → "MM/DD" (날짜 비교용)
