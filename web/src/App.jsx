@@ -1465,8 +1465,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       const pinDate = game.starts_at ? game.starts_at.slice(0, 5) : null
 
       const dateScore = p => {
-        if (!pinDate) return 1
-        if (!p.game_date) return 1
+        if (!pinDate || !p.game_date) return 0
         return p.game_date.slice(5).replace('-', '/') === pinDate ? 2 : 0
       }
       const latestTime = p => p?.updated_at ? new Date(p.updated_at).getTime() || 0 : 0
