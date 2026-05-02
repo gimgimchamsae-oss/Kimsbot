@@ -839,8 +839,9 @@ function ProtoBetting({ proto }) {
   )
 }
 
-const REVERSE_THRESHOLD      = 70   // 야구·농구·O/U
-const REVERSE_THRESHOLD_3W   = 65   // 축구 승무패
+const REVERSE_THRESHOLD      = 80   // 야구·농구·O/U
+const REVERSE_THRESHOLD_3W   = 60   // 축구 승무패
+const REVERSE_ODDS_RISE_MIN  = 0.08
 const AWAY_LOW_ODDS_MAX      = 1.60
 const AWAY_LOW_ODDS_SOCCER_MAX = 1.80
 const AWAY_LOW_ODDS_MAX_BUY  = 80
@@ -849,7 +850,7 @@ const BASEBALL_LOW_TOTAL_UNDER_LINES = { MLB: 6.5, KBO: 7.5, NPB: 5 }
 
 function reverseSignals(game) {
   const hours = hoursUntil(game.starts_at)
-  if (hours === null || hours < 0) return []
+  if (hours === null || hours < 0 || hours > 2) return []
 
   const proto   = game.protoBetting
   const pb      = game.publicBetting
@@ -901,9 +902,6 @@ function reverseSignals(game) {
     })
   }
 
-  // 기존 역추세 시그널은 경기 시작 2시간 이내일 때만 표시
-  if (hours > 2) return signals
-
   if (isSoccer) {
     // ── [축구 Signal 1] 승무패 역추세: 정배 편중 + 정배 배당 상승 ─────
     // 정배 판별: 현재 배당 낮은 쪽
@@ -912,13 +910,13 @@ function reverseSignals(game) {
 
     if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W) {
       const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
-      if (diff != null && diff >= 0.03) {
+      if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
         signals.push({ market: 'ML', pick: '원정 플핸', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
       }
     }
     if (awayFav && mlAway != null && mlAway >= REVERSE_THRESHOLD_3W) {
       const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
-      if (diff != null && diff >= 0.03) {
+      if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
         signals.push({ market: 'ML', pick: '홈 플핸', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
       }
     }
@@ -944,7 +942,7 @@ function reverseSignals(game) {
           signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
         } else if (!ouLineChanged) {
           const diff = (op.ou_over && game.ou_over) ? game.ou_over - op.ou_over : null
-          if (diff != null && diff >= 0.03) {
+          if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
           }
         }
@@ -956,13 +954,13 @@ function reverseSignals(game) {
     if (mlHome != null && mlAway != null) {
       if (mlHome >= REVERSE_THRESHOLD) {
         const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
-        if (diff != null && diff >= 0.05) {
+        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
           signals.push({ market: 'ML', pick: '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
         }
       }
       if (mlAway >= REVERSE_THRESHOLD) {
         const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
-        if (diff != null && diff >= 0.05) {
+        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
           signals.push({ market: 'ML', pick: '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
         }
       }
@@ -980,7 +978,7 @@ function reverseSignals(game) {
           }
         } else {
           const diff = (op.sp_home && game.sp_home) ? game.sp_home - op.sp_home : null
-          if (diff != null && diff >= 0.05) {
+          if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: '핸디', pick: '원정 핸디', publicSide: `홈핸디 ${spHome}%`, reason: `홈핸디배당↑ +${diff.toFixed(2)}` })
           }
         }
@@ -992,7 +990,7 @@ function reverseSignals(game) {
           }
         } else {
           const diff = (op.sp_away && game.sp_away) ? game.sp_away - op.sp_away : null
-          if (diff != null && diff >= 0.05) {
+          if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: '핸디', pick: '홈 핸디', publicSide: `원정핸디 ${spAway}%`, reason: `원정핸디배당↑ +${diff.toFixed(2)}` })
           }
         }
@@ -1009,7 +1007,7 @@ function reverseSignals(game) {
           }
         } else {
           const diff = (op.ou_over && game.ou_over) ? game.ou_over - op.ou_over : null
-          if (diff != null && diff >= 0.05) {
+          if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
           }
         }
@@ -1021,7 +1019,7 @@ function reverseSignals(game) {
           }
         } else {
           const diff = (op.ou_under && game.ou_under) ? game.ou_under - op.ou_under : null
-          if (diff != null && diff >= 0.05) {
+          if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `언더배당↑ +${diff.toFixed(2)}` })
           }
         }
