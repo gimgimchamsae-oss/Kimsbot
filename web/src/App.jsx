@@ -842,6 +842,7 @@ function ProtoBetting({ proto }) {
 const REVERSE_THRESHOLD      = 70   // 야구·농구·O/U
 const REVERSE_THRESHOLD_3W   = 65   // 축구 승무패
 const AWAY_LOW_ODDS_MAX      = 1.60
+const AWAY_LOW_ODDS_SOCCER_MAX = 1.80
 const AWAY_LOW_ODDS_MAX_BUY  = 80
 const AWAY_LOW_ODDS_MAX_RISE = 0.10
 
@@ -863,10 +864,12 @@ function reverseSignals(game) {
   const isSoccer = game.sport === 'soccer'
   const awayOdds = game.ml_away ?? op.ml_away
   const awayRise = awayOdds != null && op.ml_away != null ? awayOdds - op.ml_away : null
+  const awayLowOddsMatch = isSoccer
+    ? awayOdds != null && awayOdds < AWAY_LOW_ODDS_SOCCER_MAX
+    : awayOdds != null && awayOdds <= AWAY_LOW_ODDS_MAX
 
   if (
-    awayOdds != null &&
-    awayOdds <= AWAY_LOW_ODDS_MAX &&
+    awayLowOddsMatch &&
     mlAway != null &&
     mlAway < AWAY_LOW_ODDS_MAX_BUY &&
     awayRise != null &&
