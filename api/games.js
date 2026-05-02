@@ -129,6 +129,7 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
   const compat = []
   for (const game of lines) {
     if (/(Games\))/i.test(game.home || '') || /(Games\))/i.test(game.away || '')) continue
+    if (!isCurrentOrFutureLine(game)) continue
     const names = lineTeamNames(game)
     if (!names) continue
     const { homeAbbr, awayAbbr } = names
