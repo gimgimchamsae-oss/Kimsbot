@@ -1017,8 +1017,8 @@ function reverseSignals(game) {
         })
       }
 
-      const ouLineChanged = false && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
-      if (ouOver >= REVERSE_THRESHOLD) {
+      const ouLineChanged = soccerOuLineChanged
+      if (!soccerOuLineChanged && ouOver >= REVERSE_THRESHOLD) {
         if (ouLineChanged && game.ou_pts < op.ou_pts) {
           signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
         } else if (!ouLineChanged) {
@@ -1026,6 +1026,18 @@ function reverseSignals(game) {
           if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
           }
+        }
+      }
+      if (!soccerOuLineChanged && ouUnder >= REVERSE_THRESHOLD) {
+        const diff = (op.ou_under && game.ou_under) ? game.ou_under - op.ou_under : null
+        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
+          signals.push({
+            market: 'O/U',
+            side: 'over',
+            pick: '오버',
+            publicSide: `언더 ${ouUnder}%`,
+            reason: `언더배당 +${diff.toFixed(2)}`,
+          })
         }
       }
     }
