@@ -845,6 +845,7 @@ const AWAY_LOW_ODDS_MAX      = 1.60
 const AWAY_LOW_ODDS_SOCCER_MAX = 1.80
 const AWAY_LOW_ODDS_MAX_BUY  = 80
 const AWAY_LOW_ODDS_MAX_RISE = 0.10
+const BASEBALL_LOW_TOTAL_UNDER_LINES = { MLB: 6.5, KBO: 7.5, NPB: 5 }
 
 function reverseSignals(game) {
   const hours = hoursUntil(game.starts_at)
@@ -880,6 +881,23 @@ function reverseSignals(game) {
       pick: '원정 승',
       publicSide: `원정 ${mlAway}%`,
       reason: `원정 ${awayOdds.toFixed(2)} / 상승 ${awayRise >= 0 ? '+' : ''}${awayRise.toFixed(2)}`,
+    })
+  }
+
+  const baseballUnderLine = BASEBALL_LOW_TOTAL_UNDER_LINES[game.league]
+  const ouPts = game.ou_pts ?? op.ou_pts
+  const isUnderNotCrowded = ouUnder != null && ouUnder < 80
+  if (
+    baseballUnderLine != null &&
+    ouPts != null &&
+    ouPts <= baseballUnderLine &&
+    isUnderNotCrowded
+  ) {
+    signals.push({
+      market: 'O/U',
+      pick: '언더',
+      publicSide: `언더 ${ouUnder}%`,
+      reason: `${game.league} 기준점 ${ouPts}`,
     })
   }
 
