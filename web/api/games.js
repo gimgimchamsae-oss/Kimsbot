@@ -92,6 +92,11 @@ const SOCCER_TEAM_ALIASES = {
   intermilan: 'internazionale',
   newcastleunited: 'newcastle',
   westhamunited: 'westham',
+  tochigicityfc: 'tochigicity',
+  sagantosu: 'sagantosu',
+  shonanbellmare: 'shonanbellmare',
+  jubiloiwata: 'jubiloiwata',
+  tegevajaromiyazaki: 'tegevajaromiyazaki',
 }
 
 function normTeam(value) {

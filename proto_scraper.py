@@ -157,6 +157,12 @@ KR_ABBREV = {
 
 # 한글 축구팀명 → 피나클 영문 팀명 (축구는 약자 없이 풀네임 매핑)
 KR_SOCCER: dict[str, str] = {
+    # Japan
+    '도치기시티FC': 'Tochigi City FC',
+    '사간도스': 'Sagan Tosu',
+    '쇼난벨마레': 'Shonan Bellmare',
+    '주빌로이와타': 'Jubilo Iwata',
+    '테게바자로미야자키': 'Tegevajaro Miyazaki',
     # ── EPL ─────────────────────────────────────────
     '아스널': 'Arsenal', '첼시': 'Chelsea', '리버풀': 'Liverpool',
     '맨체스터시티': 'Manchester City', '맨체스터 시티': 'Manchester City',
