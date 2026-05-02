@@ -1464,9 +1464,19 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
       // starts_at "MM/DD HH:MM KST" → "MM/DD" (날짜 비교용)
       const pinDate = game.starts_at ? game.starts_at.slice(0, 5) : null
 
-      const matchDate = p => {
-        if (!pinDate || !p.game_date) return true  // 한쪽 없으면 날짜 체크 스킵
-        return p.game_date.slice(5).replace('-', '/') === pinDate  // "04/30"
+      const dateScore = p => {
+        if (!pinDate) return 1
+        if (!p.game_date) return 1
+        return p.game_date.slice(5).replace('-', '/') === pinDate ? 2 : 0
+      }
+      const latestTime = p => p?.updated_at ? new Date(p.updated_at).getTime() || 0 : 0
+      const pickProto = (filter, reversed = false) => {
+        const found = protoData
+          .filter(p => filter(p) && isRecent(p))
+          .map(p => ({ p, score: dateScore(p) }))
+          .filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score || latestTime(b.p) - latestTime(a.p))[0]?.p
+        return found ? orientProto(found, reversed) : null
       }
 
       if (game.league === 'MLB' || game.league === 'NBA') {
@@ -1483,14 +1493,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
           p.league === game.league &&
           p.home_abbr?.toUpperCase() === awayAbbr.toUpperCase() &&
           p.away_abbr?.toUpperCase() === homeAbbr.toUpperCase()
-        let found = protoData.find(p => baseFilter(p) && matchDate(p))
-        if (found && isRecent(found)) return found
-        found = protoData.find(p => reverseFilter(p) && matchDate(p))
-        if (found && isRecent(found)) return orientProto(found, true)
-        if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
-        if (!found) found = protoData.find(p => reverseFilter(p))
-        if (found && reverseFilter(found) && isRecent(found)) return orientProto(found, true)
-        return (found && isRecent(found)) ? found : null
+        return pickProto(baseFilter) || pickProto(reverseFilter, true)
       }
       // KBO/NPB/soccer: home_abbr = Pinnacle 영문 팀명과 직접 비교
       const baseFilter = p =>
@@ -1501,14 +1504,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn }) {
         p.sport === protoSport &&
         norm(p.home_abbr) === norm(game.away) &&
         norm(p.away_abbr) === norm(game.home)
-      let found = protoData.find(p => baseFilter(p) && matchDate(p))
-      if (found && isRecent(found)) return found
-      found = protoData.find(p => reverseFilter(p) && matchDate(p))
-      if (found && isRecent(found)) return orientProto(found, true)
-      if (!found) found = protoData.find(p => baseFilter(p))  // 날짜 매칭 실패 시 날짜 무시
-      if (!found) found = protoData.find(p => reverseFilter(p))
-      if (found && reverseFilter(found) && isRecent(found)) return orientProto(found, true)
-      return (found && isRecent(found)) ? found : null
+      return pickProto(baseFilter) || pickProto(reverseFilter, true)
     }
 
     const merged = linesData.filter(g =>
