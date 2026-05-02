@@ -841,11 +841,13 @@ function ProtoBetting({ proto }) {
 
 const REVERSE_THRESHOLD      = 70   // 야구·농구·O/U
 const REVERSE_THRESHOLD_3W   = 65   // 축구 승무패
+const AWAY_LOW_ODDS_MAX      = 1.60
+const AWAY_LOW_ODDS_MAX_BUY  = 80
+const AWAY_LOW_ODDS_MAX_RISE = 0.10
 
 function reverseSignals(game) {
-  // 경기 시작 2시간 이내일 때만 시그널 표시
   const hours = hoursUntil(game.starts_at)
-  if (hours === null || hours < 0 || hours > 2) return []
+  if (hours === null || hours < 0) return []
 
   const proto   = game.protoBetting
   const pb      = game.publicBetting
@@ -859,6 +861,27 @@ function reverseSignals(game) {
 
   const fmtPts  = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
   const isSoccer = game.sport === 'soccer'
+  const awayOdds = game.ml_away ?? op.ml_away
+  const awayRise = awayOdds != null && op.ml_away != null ? awayOdds - op.ml_away : null
+
+  if (
+    awayOdds != null &&
+    awayOdds <= AWAY_LOW_ODDS_MAX &&
+    mlAway != null &&
+    mlAway < AWAY_LOW_ODDS_MAX_BUY &&
+    awayRise != null &&
+    awayRise < AWAY_LOW_ODDS_MAX_RISE
+  ) {
+    signals.push({
+      market: 'ML',
+      pick: '원정 승',
+      publicSide: `원정 ${mlAway}%`,
+      reason: `원정 ${awayOdds.toFixed(2)} / 상승 ${awayRise >= 0 ? '+' : ''}${awayRise.toFixed(2)}`,
+    })
+  }
+
+  // 기존 역추세 시그널은 경기 시작 2시간 이내일 때만 표시
+  if (hours > 2) return signals
 
   if (isSoccer) {
     // ── [축구 Signal 1] 승무패 역추세: 정배 편중 + 정배 배당 상승 ─────
