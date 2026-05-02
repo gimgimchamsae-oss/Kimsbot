@@ -847,6 +847,9 @@ const AWAY_LOW_ODDS_SOCCER_MAX = 1.80
 const AWAY_LOW_ODDS_MAX_BUY  = 80
 const AWAY_LOW_ODDS_MAX_RISE = 0.10
 const BASEBALL_LOW_TOTAL_UNDER_LINES = { MLB: 6.5, KBO: 7.5, NPB: 5 }
+const SOCCER_DOG_DRAW_MAX_BUY = 50
+const SOCCER_FAV_MAX_BUY = 70
+const SOCCER_OU_MAX_BUY = 80
 
 function reverseSignals(game) {
   const hours = hoursUntil(game.starts_at)
@@ -933,7 +936,34 @@ function reverseSignals(game) {
     }
 
     // ── [축구 Signal 2] 핸디라인 이동: 정배 편중 + sp_pts 정배에 불리하게 변동 ─
-    const spLineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
+    const soccerSpLineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
+    if (soccerSpLineChanged && (homeFav || awayFav)) {
+      const favOpen = homeFav ? op.sp_pts : -op.sp_pts
+      const favCur = homeFav ? game.sp_pts : -game.sp_pts
+      const dogDrawBuy = homeFav
+        ? (mlDraw != null && mlAway != null ? mlDraw + mlAway : null)
+        : (mlDraw != null && mlHome != null ? mlDraw + mlHome : null)
+      const favBuy = homeFav ? mlHome : mlAway
+
+      if (favCur > favOpen && dogDrawBuy != null && dogDrawBuy <= SOCCER_DOG_DRAW_MAX_BUY) {
+        signals.push({
+          market: '핸디',
+          pick: homeFav ? '원정 플핸' : '홈 플핸',
+          publicSide: `무+역배 ${dogDrawBuy}%`,
+          reason: `핸디 ${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`,
+        })
+      }
+      if (favCur < favOpen && favBuy != null && favBuy <= SOCCER_FAV_MAX_BUY) {
+        signals.push({
+          market: 'ML',
+          pick: homeFav ? '홈 승' : '원정 승',
+          publicSide: `정배 ${favBuy}%`,
+          reason: `핸디 ${fmtPts(op.sp_pts)}→${fmtPts(game.sp_pts)}`,
+        })
+      }
+    }
+
+    const spLineChanged = false && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
     if (spLineChanged) {
       if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W && game.sp_pts > op.sp_pts) {
         // 홈 정배인데 핸디선이 홈에게 불리하게 상승 → 원정 플핸
@@ -947,7 +977,25 @@ function reverseSignals(game) {
 
     // ── [축구 Signal 3] O/U 역추세: 오버 편중 + 기준점 하락 or 오버배당 상승 ─
     if (ouOver != null && ouUnder != null) {
-      const ouLineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
+      const soccerOuLineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
+      if (soccerOuLineChanged && game.ou_pts < op.ou_pts && ouUnder <= SOCCER_OU_MAX_BUY) {
+        signals.push({
+          market: 'O/U',
+          pick: '언더',
+          publicSide: `언더 ${ouUnder}%`,
+          reason: `기준점 ${op.ou_pts}→${game.ou_pts}`,
+        })
+      }
+      if (soccerOuLineChanged && game.ou_pts > op.ou_pts && ouOver <= SOCCER_OU_MAX_BUY) {
+        signals.push({
+          market: 'O/U',
+          pick: '오버',
+          publicSide: `오버 ${ouOver}%`,
+          reason: `기준점 ${op.ou_pts}→${game.ou_pts}`,
+        })
+      }
+
+      const ouLineChanged = false && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
       if (ouOver >= REVERSE_THRESHOLD) {
         if (ouLineChanged && game.ou_pts < op.ou_pts) {
           signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
@@ -956,6 +1004,12 @@ function reverseSignals(game) {
           if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
             signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `오버배당↑ +${diff.toFixed(2)}` })
           }
+        }
+      }
+      if (!soccerOuLineChanged && ouUnder >= REVERSE_THRESHOLD) {
+        const diff = (op.ou_under && game.ou_under) ? game.ou_under - op.ou_under : null
+        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
+          signals.push({ market: 'O/U', pick: '오버', publicSide: `언더 ${ouUnder}%`, reason: `언더배당 +${diff.toFixed(2)}` })
         }
       }
     }
@@ -1751,8 +1805,9 @@ export default function App() {
 
   async function signInWithGoogle() {
     const isNative = Capacitor.isNativePlatform()
-    // 네이티브: Vercel URL로 redirect → 앱이 auth 상태변화 감지
-    const redirectTo = 'https://pinnacle-bot.vercel.app'
+    const redirectTo = isNative
+      ? 'com.sharpsignal.app://auth-callback'
+      : `${window.location.origin}`
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo, skipBrowserRedirect: isNative },
