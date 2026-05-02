@@ -111,7 +111,7 @@ function lineTeamNames(game) {
     if (!homeAbbr || !awayAbbr) return null
     return { homeAbbr, awayAbbr }
   }
-  if (game.sport === 'soccer') {
+  if (game.sport === 'baseball' || game.sport === 'soccer') {
     return { homeAbbr: game.home, awayAbbr: game.away }
   }
   return null
