@@ -864,6 +864,9 @@ function reverseSignals(game) {
 
   const fmtPts  = v => v != null ? `${v >= 0 ? '+' : ''}${v}` : '?'
   const isSoccer = game.sport === 'soccer'
+  const oddsMove = (open, cur) => (open != null && cur != null) ? cur - open : null
+  const movedUp = move => move != null && move >= REVERSE_ODDS_RISE_MIN
+  const movedDown = move => move != null && move <= -REVERSE_ODDS_RISE_MIN
   const awayOdds = game.ml_away ?? op.ml_away
   const awayRise = awayOdds != null && op.ml_away != null ? awayOdds - op.ml_away : null
   const awayLowOddsMatch = isSoccer
@@ -909,15 +912,23 @@ function reverseSignals(game) {
     const awayFav = game.ml_home != null && game.ml_away != null && game.ml_away < game.ml_home
 
     if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W) {
-      const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
-      if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
-        signals.push({ market: 'ML', pick: '원정 플핸', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
+      const favMove = oddsMove(op.ml_home, game.ml_home)
+      const dogMove = oddsMove(op.ml_away, game.ml_away)
+      if (movedUp(favMove) || movedDown(dogMove)) {
+        const reason = movedDown(dogMove)
+          ? `원정배당↓ ${dogMove.toFixed(2)}`
+          : `홈배당↑ +${favMove.toFixed(2)}`
+        signals.push({ market: 'ML', pick: '원정 플핸', publicSide: `홈 ${mlHome}%`, reason })
       }
     }
     if (awayFav && mlAway != null && mlAway >= REVERSE_THRESHOLD_3W) {
-      const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
-      if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
-        signals.push({ market: 'ML', pick: '홈 플핸', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
+      const favMove = oddsMove(op.ml_away, game.ml_away)
+      const dogMove = oddsMove(op.ml_home, game.ml_home)
+      if (movedUp(favMove) || movedDown(dogMove)) {
+        const reason = movedDown(dogMove)
+          ? `홈배당↓ ${dogMove.toFixed(2)}`
+          : `원정배당↑ +${favMove.toFixed(2)}`
+        signals.push({ market: 'ML', pick: '홈 플핸', publicSide: `원정 ${mlAway}%`, reason })
       }
     }
 
@@ -953,15 +964,23 @@ function reverseSignals(game) {
     // ── 야구·농구 ML 역추세 ────────────────────────────────────────
     if (mlHome != null && mlAway != null) {
       if (mlHome >= REVERSE_THRESHOLD) {
-        const diff = (op.ml_home && game.ml_home) ? game.ml_home - op.ml_home : null
-        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
-          signals.push({ market: 'ML', pick: '원정 승', publicSide: `홈 ${mlHome}%`, reason: `홈배당↑ +${diff.toFixed(2)}` })
+        const publicMove = oddsMove(op.ml_home, game.ml_home)
+        const sharpMove = oddsMove(op.ml_away, game.ml_away)
+        if (movedUp(publicMove) || movedDown(sharpMove)) {
+          const reason = movedDown(sharpMove)
+            ? `원정배당↓ ${sharpMove.toFixed(2)}`
+            : `홈배당↑ +${publicMove.toFixed(2)}`
+          signals.push({ market: 'ML', pick: '원정 승', publicSide: `홈 ${mlHome}%`, reason })
         }
       }
       if (mlAway >= REVERSE_THRESHOLD) {
-        const diff = (op.ml_away && game.ml_away) ? game.ml_away - op.ml_away : null
-        if (diff != null && diff >= REVERSE_ODDS_RISE_MIN) {
-          signals.push({ market: 'ML', pick: '홈 승', publicSide: `원정 ${mlAway}%`, reason: `원정배당↑ +${diff.toFixed(2)}` })
+        const publicMove = oddsMove(op.ml_away, game.ml_away)
+        const sharpMove = oddsMove(op.ml_home, game.ml_home)
+        if (movedUp(publicMove) || movedDown(sharpMove)) {
+          const reason = movedDown(sharpMove)
+            ? `홈배당↓ ${sharpMove.toFixed(2)}`
+            : `원정배당↑ +${publicMove.toFixed(2)}`
+          signals.push({ market: 'ML', pick: '홈 승', publicSide: `원정 ${mlAway}%`, reason })
         }
       }
     }
