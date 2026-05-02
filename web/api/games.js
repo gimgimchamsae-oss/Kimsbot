@@ -90,6 +90,8 @@ const SOCCER_TEAM_ALIASES = {
   intermilano: 'internazionale',
   intermilans: 'internazionale',
   intermilan: 'internazionale',
+  newcastleunited: 'newcastle',
+  westhamunited: 'westham',
 }
 
 function normTeam(value) {
