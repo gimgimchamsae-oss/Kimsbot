@@ -49,26 +49,7 @@ function mirrorProtoBetting(rows = []) {
     sp_bets_home: row.sp_bets_away,
     sp_bets_away: row.sp_bets_home,
   }))
-  return expandProtoDates([...rows, ...mirrored])
-}
-
-function shiftDate(date, days) {
-  if (!date) return date
-  const d = new Date(`${date}T00:00:00Z`)
-  if (Number.isNaN(d.getTime())) return date
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-function expandProtoDates(rows = []) {
-  return rows.flatMap(row => [
-    { ...row, game_date: '' },
-    { ...row, game_date: shiftDate(row.game_date, -2) },
-    { ...row, game_date: shiftDate(row.game_date, -1) },
-    row,
-    { ...row, game_date: shiftDate(row.game_date, 1) },
-    { ...row, game_date: shiftDate(row.game_date, 2) },
-  ])
+  return [...rows, ...mirrored]
 }
 
 function normalizeProtoOu(rows = []) {
@@ -153,8 +134,11 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
     const { homeAbbr, awayAbbr } = names
     const protoSport = protoSportForGame(game)
     if (!protoSport) continue
+    const gameDate = lineGameDate(game.starts_at)
+    if (!gameDate) continue
     const found = protoRows.find(row =>
       row.sport === protoSport &&
+      row.game_date === gameDate &&
       (protoSport === 'soccer' || row.league === game.league) &&
       (
         (normTeam(row.home_abbr) === normTeam(homeAbbr) && normTeam(row.away_abbr) === normTeam(awayAbbr)) ||
@@ -169,7 +153,7 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
       away: reversed ? found.home : found.away,
       home_abbr: homeAbbr,
       away_abbr: awayAbbr,
-      game_date: lineGameDate(game.starts_at),
+      game_date: gameDate,
       ml_bets_home: reversed ? found.ml_bets_away : found.ml_bets_home,
       ml_bets_away: reversed ? found.ml_bets_home : found.ml_bets_away,
       sp_bets_home: reversed ? found.sp_bets_away : found.sp_bets_home,
@@ -244,7 +228,7 @@ export default async function handler(req, res) {
     const normalizedProtoRows = normalizeProtoOu(protoRows || [])
 
     res.json({
-      apiVersion: 'proto-debug-unmatched-v1',
+      apiVersion: 'proto-exact-date-only-v1',
       lines: lines || [],
       openings: openings || [],
       alerts: alerts || [],
