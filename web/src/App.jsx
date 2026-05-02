@@ -850,7 +850,7 @@ const BASEBALL_LOW_TOTAL_UNDER_LINES = { MLB: 6.5, KBO: 7.5, NPB: 5 }
 
 function reverseSignals(game) {
   const hours = hoursUntil(game.starts_at)
-  if (hours === null || hours < 0 || hours > 2) return []
+  if (hours === null || hours < 0) return []
 
   const proto   = game.protoBetting
   const pb      = game.publicBetting
