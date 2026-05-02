@@ -847,9 +847,6 @@ const AWAY_LOW_ODDS_SOCCER_MAX = 1.80
 const AWAY_LOW_ODDS_MAX_BUY  = 80
 const AWAY_LOW_ODDS_MAX_RISE = 0.10
 const BASEBALL_LOW_TOTAL_UNDER_LINES = { MLB: 6.5, KBO: 7.5, NPB: 5 }
-const SOCCER_DOG_DRAW_MAX_BUY = 50
-const SOCCER_FAV_MAX_BUY = 70
-const SOCCER_OU_MAX_BUY = 80
 
 function reverseSignals(game) {
   const hours = hoursUntil(game.starts_at)
@@ -936,54 +933,7 @@ function reverseSignals(game) {
     }
 
     // ── [축구 Signal 2] 핸디라인 이동: 정배 편중 + sp_pts 정배에 불리하게 변동 ─
-    const soccerSpLineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
-    if (soccerSpLineChanged) {
-      const lineMove = game.sp_pts - op.sp_pts
-      if (homeFav && lineMove > 0 && mlDraw != null && mlAway != null) {
-        const dogDrawBuy = mlDraw + mlAway
-        if (dogDrawBuy <= SOCCER_DOG_DRAW_MAX_BUY) {
-          signals.push({
-            market: '핸디',
-            side: 'away',
-            pick: `${game.away} +핸디`,
-            publicSide: `무+역배 ${dogDrawBuy}%`,
-            reason: `핸디 ${fmtPts(op.sp_pts)} -> ${fmtPts(game.sp_pts)}`,
-          })
-        }
-      }
-      if (homeFav && lineMove < 0 && mlHome != null && mlHome <= SOCCER_FAV_MAX_BUY) {
-        signals.push({
-          market: 'ML',
-          side: 'home',
-          pick: `${game.home} 승`,
-          publicSide: `정배 ${mlHome}%`,
-          reason: `핸디 ${fmtPts(op.sp_pts)} -> ${fmtPts(game.sp_pts)}`,
-        })
-      }
-      if (awayFav && lineMove < 0 && mlDraw != null && mlHome != null) {
-        const dogDrawBuy = mlDraw + mlHome
-        if (dogDrawBuy <= SOCCER_DOG_DRAW_MAX_BUY) {
-          signals.push({
-            market: '핸디',
-            side: 'home',
-            pick: `${game.home} +핸디`,
-            publicSide: `무+역배 ${dogDrawBuy}%`,
-            reason: `핸디 ${fmtPts(op.sp_pts)} -> ${fmtPts(game.sp_pts)}`,
-          })
-        }
-      }
-      if (awayFav && lineMove > 0 && mlAway != null && mlAway <= SOCCER_FAV_MAX_BUY) {
-        signals.push({
-          market: 'ML',
-          side: 'away',
-          pick: `${game.away} 승`,
-          publicSide: `정배 ${mlAway}%`,
-          reason: `핸디 ${fmtPts(op.sp_pts)} -> ${fmtPts(game.sp_pts)}`,
-        })
-      }
-    }
-
-    const spLineChanged = false && op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
+    const spLineChanged = op.sp_pts != null && game.sp_pts != null && game.sp_pts !== op.sp_pts
     if (spLineChanged) {
       if (homeFav && mlHome != null && mlHome >= REVERSE_THRESHOLD_3W && game.sp_pts > op.sp_pts) {
         // 홈 정배인데 핸디선이 홈에게 불리하게 상승 → 원정 플핸
@@ -997,27 +947,7 @@ function reverseSignals(game) {
 
     // ── [축구 Signal 3] O/U 역추세: 오버 편중 + 기준점 하락 or 오버배당 상승 ─
     if (ouOver != null && ouUnder != null) {
-      const soccerOuLineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
-      if (soccerOuLineChanged && game.ou_pts < op.ou_pts && ouUnder <= SOCCER_OU_MAX_BUY) {
-        signals.push({
-          market: 'O/U',
-          side: 'under',
-          pick: '언더',
-          publicSide: `언더 ${ouUnder}%`,
-          reason: `기준점 ${op.ou_pts} -> ${game.ou_pts}`,
-        })
-      }
-      if (soccerOuLineChanged && game.ou_pts > op.ou_pts && ouOver <= SOCCER_OU_MAX_BUY) {
-        signals.push({
-          market: 'O/U',
-          side: 'over',
-          pick: '오버',
-          publicSide: `오버 ${ouOver}%`,
-          reason: `기준점 ${op.ou_pts} -> ${game.ou_pts}`,
-        })
-      }
-
-      const ouLineChanged = false && op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
+      const ouLineChanged = op.ou_pts != null && game.ou_pts != null && game.ou_pts !== op.ou_pts
       if (ouOver >= REVERSE_THRESHOLD) {
         if (ouLineChanged && game.ou_pts < op.ou_pts) {
           signals.push({ market: 'O/U', pick: '언더', publicSide: `오버 ${ouOver}%`, reason: `기준점↓ (${op.ou_pts}→${game.ou_pts})` })
@@ -1154,21 +1084,6 @@ function ReverseSignals({ signals }) {
 function getPickOdds(game, signal) {
   const op  = game.opening || {}
   const val = (cur, open) => cur ?? open
-  if (signal.side) {
-    if (signal.market === 'ML') {
-      if (signal.side === 'home') return val(game.ml_home, op.ml_home)
-      if (signal.side === 'away') return val(game.ml_away, op.ml_away)
-      if (signal.side === 'draw') return val(game.ml_draw, op.ml_draw)
-    }
-    if (signal.market !== 'ML' && signal.market !== 'O/U') {
-      if (signal.side === 'home') return val(game.sp_home, op.sp_home)
-      if (signal.side === 'away') return val(game.sp_away, op.sp_away)
-    }
-    if (signal.market === 'O/U') {
-      if (signal.side === 'over') return val(game.ou_over, op.ou_over)
-      if (signal.side === 'under') return val(game.ou_under, op.ou_under)
-    }
-  }
   if (signal.market === 'ML') {
     if (signal.pick.includes('홈') && !signal.pick.includes('원정')) return val(game.ml_home, op.ml_home)
     if (signal.pick.includes('원정')) return val(game.ml_away, op.ml_away)
@@ -1208,8 +1123,8 @@ function consolidatePicks(rawPicks) {
 
     for (const pick of mlPicks) {
       const { signal } = pick
-      const isHome = signal.side ? signal.side === 'home' : signal.pick.includes('홈') && !signal.pick.includes('원정')
-      const isDraw = signal.side ? signal.side === 'draw' : !signal.pick.includes('홈') && !signal.pick.includes('원정') && signal.pick.includes('무')
+      const isHome = signal.pick.includes('홈') && !signal.pick.includes('원정')
+      const isDraw = !signal.pick.includes('홈') && !signal.pick.includes('원정') && signal.pick.includes('무')
       const key = isDraw ? `${game.matchup_id}_draw`
         : `${game.matchup_id}_${isHome ? 'home' : 'away'}`
       if (usedKey.has(key)) continue
@@ -1219,7 +1134,7 @@ function consolidatePicks(rawPicks) {
 
     for (const pick of spPicks) {
       const { signal } = pick
-      const isHome = signal.side ? signal.side === 'home' : signal.pick.includes('홈')
+      const isHome = signal.pick.includes('홈')
       const key    = `${game.matchup_id}_${isHome ? 'home' : 'away'}`
       if (usedKey.has(key)) continue
       usedKey.add(key)
@@ -1236,7 +1151,7 @@ function consolidatePicks(rawPicks) {
 
     for (const pick of ouPicks) {
       const { signal } = pick
-      const key = `${game.matchup_id}_${signal.side || (signal.pick.includes('오버') ? 'over' : 'under')}`
+      const key = `${game.matchup_id}_${signal.pick.includes('오버') ? 'over' : 'under'}`
       if (usedKey.has(key)) continue
       usedKey.add(key)
       result.push(pick)
@@ -1356,15 +1271,13 @@ function GameCard({ game, onClick, hasAccess, onShowUpgrade }) {
   const op       = game.opening || {}
 
   const revSigs = reverseSignals(game)
-  const hasPick = (market, side, label) => revSigs.some(s =>
-    s.market === market && (s.side === side || s.pick.includes(label))
-  )
-  const mlHomeHL  = hasPick('ML', 'home', '홈') ? 'blue' : null
-  const mlAwayHL  = hasPick('ML', 'away', '원정') ? 'blue' : null
-  const spHomeHL  = hasPick('핸디', 'home', '홈') ? 'blue' : null
-  const spAwayHL  = hasPick('핸디', 'away', '원정') ? 'blue' : null
-  const ouOverHL  = hasPick('O/U', 'over', '오버') ? 'blue' : null
-  const ouUnderHL = hasPick('O/U', 'under', '언더') ? 'blue' : null
+  const hasPick = (market, side) => revSigs.some(s => s.market === market && s.pick.includes(side))
+  const mlHomeHL  = hasPick('ML', '홈') ? 'blue' : null
+  const mlAwayHL  = hasPick('ML', '원정') ? 'blue' : null
+  const spHomeHL  = hasPick('핸디', '홈') ? 'blue' : null
+  const spAwayHL  = hasPick('핸디', '원정') ? 'blue' : null
+  const ouOverHL  = hasPick('O/U', '오버') ? 'blue' : null
+  const ouUnderHL = hasPick('O/U', '언더') ? 'blue' : null
 
   const mlHome  = game.ml_home  ?? op.ml_home
   const mlAway  = game.ml_away  ?? op.ml_away
