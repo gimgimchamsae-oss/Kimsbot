@@ -1,4 +1,4 @@
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+﻿const SUPABASE_URL = process.env.VITE_SUPABASE_URL
 const SUPABASE_KEY = process.env.VITE_SUPABASE_KEY
 
 const TEAM_ABBREV = {
@@ -46,18 +46,18 @@ function mirrorProtoBetting(rows = []) {
     away_abbr: row.home_abbr,
     ml_bets_home: row.ml_bets_away,
     ml_bets_away: row.ml_bets_home,
+    ml_bets_home_count: row.ml_bets_away_count,
+    ml_bets_away_count: row.ml_bets_home_count,
+    ml_bets_home_amount: row.ml_bets_away_amount,
+    ml_bets_away_amount: row.ml_bets_home_amount,
     sp_bets_home: row.sp_bets_away,
     sp_bets_away: row.sp_bets_home,
+    sp_bets_home_count: row.sp_bets_away_count,
+    sp_bets_away_count: row.sp_bets_home_count,
+    sp_bets_home_amount: row.sp_bets_away_amount,
+    sp_bets_away_amount: row.sp_bets_home_amount,
   }))
   return [...rows, ...mirrored]
-}
-
-function normalizeProtoOu(rows = []) {
-  return rows.map(row => ({
-    ...row,
-    ou_bets_over: row.ou_bets_under,
-    ou_bets_under: row.ou_bets_over,
-  }))
 }
 
 function lineGameDate(startsAt) {
@@ -164,8 +164,16 @@ function buildLineCompatibleProto(lines = [], protoRows = []) {
       game_date: gameDate,
       ml_bets_home: reversed ? found.ml_bets_away : found.ml_bets_home,
       ml_bets_away: reversed ? found.ml_bets_home : found.ml_bets_away,
+      ml_bets_home_count: reversed ? found.ml_bets_away_count : found.ml_bets_home_count,
+      ml_bets_away_count: reversed ? found.ml_bets_home_count : found.ml_bets_away_count,
+      ml_bets_home_amount: reversed ? found.ml_bets_away_amount : found.ml_bets_home_amount,
+      ml_bets_away_amount: reversed ? found.ml_bets_home_amount : found.ml_bets_away_amount,
       sp_bets_home: reversed ? found.sp_bets_away : found.sp_bets_home,
       sp_bets_away: reversed ? found.sp_bets_home : found.sp_bets_away,
+      sp_bets_home_count: reversed ? found.sp_bets_away_count : found.sp_bets_home_count,
+      sp_bets_away_count: reversed ? found.sp_bets_home_count : found.sp_bets_away_count,
+      sp_bets_home_amount: reversed ? found.sp_bets_away_amount : found.sp_bets_home_amount,
+      sp_bets_away_amount: reversed ? found.sp_bets_home_amount : found.sp_bets_away_amount,
     })
   }
   return [...compat, ...mirrorProtoBetting(protoRows)]
@@ -233,16 +241,14 @@ export default async function handler(req, res) {
         )
       : []
 
-    const normalizedProtoRows = normalizeProtoOu(protoRows || [])
-
     res.json({
-      apiVersion: 'proto-exact-date-only-v1',
+      apiVersion: 'betman-supabase-v2',
       lines: lines || [],
       openings: openings || [],
       alerts: alerts || [],
       publicBetting: publicBetting || [],
-      protoBetting: buildLineCompatibleProto(lines || [], normalizedProtoRows),
-      protoUnmatched: findProtoUnmatched(lines || [], normalizedProtoRows),
+      protoBetting: buildLineCompatibleProto(lines || [], protoRows || []),
+      protoUnmatched: findProtoUnmatched(lines || [], protoRows || []),
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
