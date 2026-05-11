@@ -28,11 +28,12 @@ LEAGUES = {
     "6227":   ("KBO",          "baseball"),
     "187703": ("NPB",          "baseball"),
     # 축구 - 국내/지역 리그
-    "1980":   ("EPL",          "soccer"),
-    "1842":   ("Bundesliga",   "soccer"),
-    "2436":   ("Serie A",      "soccer"),
-    "2036":   ("Ligue 1",      "soccer"),
-    "2196":   ("La Liga",      "soccer"),
+    "1980":   ("EPL",              "soccer"),
+    "1977":   ("EFL Championship", "soccer"),   # England - Championship (잉글랜드 2부)
+    "1842":   ("Bundesliga",       "soccer"),
+    "2436":   ("Serie A",          "soccer"),
+    "2036":   ("Ligue 1",          "soccer"),
+    "2196":   ("La Liga",          "soccer"),
     "207551": ("K리그1",        "soccer"),
     "207552": ("K리그2",        "soccer"),
     "2663":   ("MLS",          "soccer"),
