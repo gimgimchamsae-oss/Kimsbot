@@ -1,0 +1,52 @@
+name: excapper-collector
+
+# Excapper.com 축구 머니 데이터 수집 → SharpSignal 서버 푸시
+# GitHub Actions runner의 IP에서 수집 (서버 IP는 차단되는 문제 회피)
+on:
+  schedule:
+    - cron: "30 */2 * * *"   # 매 2시간 30분 마다 (정각 봇 패턴 회피)
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-excapper-paramiko
+          restore-keys: pip-
+
+      - name: Install dependencies
+        run: pip install paramiko
+
+      - name: Scrape Excapper
+        run: |
+          python excapper_money.py \
+            --mode all --limit 0 --details \
+            --markets "Match Odds,Both teams to Score?" \
+            --workers 1 --delay 2 --compact \
+            --format csv --output excapper_latest_matchodds_btts.csv
+
+      - name: Parse + Push to server (SFTP)
+        env:
+          EXCAPPER_SSH_HOST: sharpsignal.cloud
+          EXCAPPER_SSH_USER: root
+          EXCAPPER_SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
+          EXCAPPER_REMOTE_PATH: /app/kimkimbot/excapper.json
+          EUR_TO_KRW: "1500"
+        run: python excapper_scraper.py
+
+      - name: Show parsed game count
+        if: always()
+        run: |
+          echo "=== 지원 리그만 ==="
+          grep -E "(English Premier League|Spanish La Liga|Italian Serie A|German Bundesliga|French Ligue 1|Sky Bet Championship|MLS|J League|K League)" excapper_latest_matchodds_btts.csv | cut -d, -f5,6 | sort -u | head -30
