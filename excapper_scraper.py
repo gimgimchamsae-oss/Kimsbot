@@ -70,6 +70,16 @@ def _pct(s: str) -> int | None:
     return int(m.group()) if m else None
 
 
+def _odds(s: str) -> float | None:
+    """'1.79' → 1.79, '' → None"""
+    if not s or s.strip() in ("", "-"):
+        return None
+    try:
+        return float(s.strip())
+    except ValueError:
+        return None
+
+
 def parse_csv(csv_path: str | Path) -> list[dict]:
     """Excapper CSV → Supabase upsert용 dict 리스트."""
     games: dict[str, dict] = {}
@@ -114,6 +124,10 @@ def parse_csv(csv_path: str | Path) -> list[dict]:
                 g["ml_amount_home"] = int(_money_to_int(r.get("market1_summ") or "") * EUR_TO_KRW)
                 g["ml_amount_draw"] = int(_money_to_int(r.get("market2_summ") or "") * EUR_TO_KRW)
                 g["ml_amount_away"] = int(_money_to_int(r.get("market3_summ") or "") * EUR_TO_KRW)
+                # PAYOUT 계산용 배당
+                g["ml_odds_home"]   = _odds(r.get("market1_odds") or "")
+                g["ml_odds_draw"]   = _odds(r.get("market2_odds") or "")
+                g["ml_odds_away"]   = _odds(r.get("market3_odds") or "")
             elif mg in ("Both teams to Score?", "Both Teams to Score?"):
                 # market1=No, market2=Yes
                 g = games[game_id]
@@ -121,6 +135,9 @@ def parse_csv(csv_path: str | Path) -> list[dict]:
                 g["btts_yes_pct"]    = _pct(r.get("market2_percent") or "")
                 g["btts_no_amount"]  = int(_money_to_int(r.get("market1_summ") or "") * EUR_TO_KRW)
                 g["btts_yes_amount"] = int(_money_to_int(r.get("market2_summ") or "") * EUR_TO_KRW)
+                # PAYOUT 계산용 배당
+                g["btts_no_odds"]    = _odds(r.get("market1_odds") or "")
+                g["btts_yes_odds"]   = _odds(r.get("market2_odds") or "")
 
     return list(games.values())
 
