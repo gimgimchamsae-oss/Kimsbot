@@ -23,6 +23,13 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+# ─── IPv4 강제 (GitHub Actions runner의 IPv6 unreachable 회피) ───
+import socket as _sock
+_orig_getaddrinfo = _sock.getaddrinfo
+def _force_ipv4_getaddrinfo(host, port, family=0, *args, **kwargs):
+    return _orig_getaddrinfo(host, port, _sock.AF_INET, *args, **kwargs)
+_sock.getaddrinfo = _force_ipv4_getaddrinfo
+
 
 BASE_URL = "https://www.excapper.com/"
 DETAIL_URL = "https://www.excapper.com/index.php"
