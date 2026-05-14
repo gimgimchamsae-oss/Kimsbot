@@ -24,21 +24,28 @@ export default async function handler(req, res) {
 
   const list = subs || []
 
-  // 기기 ID 같이 반환 (중복 체험 방지 진단용)
+  // 기기 ID 같이 반환 (중복 체험 방지 진단용). 실패해도 subscriptions는 그대로 반환.
   if (list.length > 0) {
-    const userIds = list.map(s => s.user_id).filter(Boolean)
-    const { data: trials } = await admin
-      .from('device_trials')
-      .select('user_id, device_id')
-      .in('user_id', userIds)
+    try {
+      const userIds = list.map(s => s.user_id).filter(Boolean)
+      const { data: trials, error: trialsError } = await admin
+        .from('device_trials')
+        .select('user_id, device_id')
+        .in('user_id', userIds)
 
-    const deviceMap = {}
-    for (const t of trials || []) {
-      if (!deviceMap[t.user_id]) deviceMap[t.user_id] = []
-      deviceMap[t.user_id].push(t.device_id)
-    }
-    for (const s of list) {
-      s.device_ids = deviceMap[s.user_id] || []
+      if (!trialsError && trials) {
+        const deviceMap = {}
+        for (const t of trials) {
+          if (!deviceMap[t.user_id]) deviceMap[t.user_id] = []
+          deviceMap[t.user_id].push(t.device_id)
+        }
+        for (const s of list) {
+          s.device_ids = deviceMap[s.user_id] || []
+        }
+      }
+    } catch (e) {
+      // device_trials 쿼리 실패해도 무시 (subscriptions만 반환)
+      console.error('[device_trials lookup]', e)
     }
   }
 
