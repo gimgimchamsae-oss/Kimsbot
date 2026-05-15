@@ -1,11 +1,9 @@
 name: excapper-collector
 
-# Excapper.com 축구 머니 데이터 수집 → SharpSignal 서버 푸시
-# GitHub Actions runner의 IP에서 수집 (서버 IP는 차단되는 문제 회피)
+# DEPRECATED: 서버 cron(/app/kimkimbot/run_excapper.sh, 매 31,01분)으로 이전됨.
+# Excapper.com 차단 문제가 다시 생기면 schedule 복구해서 백업으로 사용.
 on:
-  schedule:
-    - cron: "30 */2 * * *"   # 매 2시간 30분 마다 (정각 봇 패턴 회피)
-  workflow_dispatch:
+  workflow_dispatch:   # 수동 실행만 (자동 schedule 비활성화)
 
 jobs:
   collect:
