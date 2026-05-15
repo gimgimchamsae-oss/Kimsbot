@@ -4017,7 +4017,7 @@ function OddsCompare({ proto }) {
   )
 }
 
-function ProtoBetting({ proto }) {
+function ProtoBetting({ proto, leagueTopBet }) {
   if (!proto) return null
 
   // sp_lines / ou_lines 중복 제거 (정규화된 base 기준)
@@ -4058,8 +4058,20 @@ function ProtoBetting({ proto }) {
   return (
     <div style={boxStyle}>
       <div className="flex items-center justify-between mb-2">
-        <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT, letterSpacing: 0.3 }}>
-          🇰🇷 국내 구매율
+        <div className="flex items-center gap-2">
+          <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT, letterSpacing: 0.3 }}>
+            🇰🇷 국내 구매율
+          </div>
+          {leagueTopBet && (
+            <div style={{
+              fontSize: 10, fontWeight: 700,
+              background: '#fbbf24', color: '#78350f',
+              borderRadius: 6, padding: '1px 6px',
+              display: 'inline-flex', alignItems: 'center', gap: 2,
+            }}>
+              🏆 {leagueTopBet.league} 최다투표 · {leagueTopBet.label}
+            </div>
+          )}
         </div>
         {totalSellLabel && <div style={{ fontSize: 10, color: '#e11d48' }}>{totalSellLabel} 판매</div>}
       </div>
@@ -4832,7 +4844,7 @@ function PinnacleBox({ game, collapsedByDefault = false }) {
   )
 }
 
-function GameCard({ game, onClick, hasAccess, onShowUpgrade, pbRank, isGuest = false }) {
+function GameCard({ game, onClick, hasAccess, onShowUpgrade, pbRank, leagueTopBet, isGuest = false }) {
   const flag     = LEAGUE_FLAGS[game.league] || '🏟'
   const isSoccer = game.sport === 'soccer'
   const op       = game.opening || {}
@@ -4899,7 +4911,7 @@ function GameCard({ game, onClick, hasAccess, onShowUpgrade, pbRank, isGuest = f
           ))} />
 
           {/* 3. 국내 구매율 */}
-          <ProtoBetting proto={game.protoBetting} />
+          <ProtoBetting proto={game.protoBetting} leagueTopBet={leagueTopBet} />
 
           {/* 4. 해외 구매율 */}
           <PublicBetting pb={game.publicBetting} isSoccer={isSoccer} pbRank={pbRank} />
@@ -6213,6 +6225,36 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn, signInLoa
     }
     return map
   })()
+
+  // 리그별 국내 베트맨 단일항목 최다투표 (미래 경기만)
+  // 예: KBO 5경기 중 KT승 20000건 최다 → 해당 카드에 "🏆 KBO 최다투표" 뱃지
+  const leagueTopBetMap = (() => {
+    const map = {}
+    const byLeague = {} // league → [{ id, label, count }]
+    for (const g of games) {
+      if (isInPast(g.starts_at)) continue
+      const p = g.protoBetting
+      if (!p) continue
+      const candidates = [
+        { label: '홈 승',   count: p.ml_bets_home_count  || 0 },
+        { label: '무',      count: p.ml_bets_draw_count  || 0 },
+        { label: '원정 승', count: p.ml_bets_away_count  || 0 },
+      ].filter(c => c.count > 0)
+      if (!candidates.length) continue
+      const best = candidates.reduce((a, b) => a.count > b.count ? a : b)
+      if (!byLeague[g.league]) byLeague[g.league] = []
+      byLeague[g.league].push({ id: g.matchup_id, label: best.label, count: best.count })
+    }
+    for (const league of Object.keys(byLeague)) {
+      const arr = byLeague[league]
+      if (!arr.length) continue
+      const top = arr.reduce((a, b) => a.count > b.count ? a : b)
+      // 동률이면 뱃지 없음 (top 1개만)
+      map[top.id] = { label: top.label, count: top.count, league }
+    }
+    return map
+  })()
+
   // 현재 대분류(upcoming/past)에 맞는 활성 스포츠/리그 추출
   const activeSports = SPORT_GROUPS.filter(sg =>
     games.some(g => sg.leagues.includes(g.league) && isInPast(g.starts_at) === isPastView)
@@ -6455,6 +6497,7 @@ function MainApp({ user, isAdmin, hasAccess, sub, onSignOut, onSignIn, signInLoa
           ) : (
             sorted.map(g => <GameCard key={g.matchup_id} game={g}
               pbRank={pbRankMap[g.matchup_id]}
+              leagueTopBet={leagueTopBetMap[g.matchup_id]}
               hasAccess={hasAccess} isGuest={!user}
               onShowUpgrade={user ? () => setShowUpgrade(true) : onSignIn}
               onClick={() => setSelected(g)} />)
