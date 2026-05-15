@@ -39,6 +39,7 @@ LEAGUES = {
     "2663":   ("MLS",          "soccer"),
     "1766":   ("A리그",         "soccer"),
     "2157":   ("J리그",         "soccer"),
+    "284677": ("J리그2",        "soccer"),   # Japan - J2/J3 League (J2+J3 통합)
     # 축구 - UEFA 대회
     "2627":   ("UCL",          "soccer"),
     "2630":   ("Europa",       "soccer"),
