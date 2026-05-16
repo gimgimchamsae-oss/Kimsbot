@@ -32,6 +32,7 @@ LEAGUE_MAP = {
     "American Major League Soccer": "MLS",
     "Major League Soccer": "MLS",
     "MLS": "MLS",
+    "US MLS": "MLS",
     "Korean K League 1": "K리그1",
     "Korean K League": "K리그1",
     "K League 1": "K리그1",
