@@ -1,9 +1,10 @@
 name: excapper-collector
 
-# DEPRECATED: 서버 cron(/app/kimkimbot/run_excapper.sh, 매 31,01분)으로 이전됨.
-# Excapper.com 차단 문제가 다시 생기면 schedule 복구해서 백업으로 사용.
+# 서버 IP가 excapper.com에서 차단되어 GitHub Actions로 복구
 on:
-  workflow_dispatch:   # 수동 실행만 (자동 schedule 비활성화)
+  schedule:
+    - cron: "1,31 * * * *"   # 매 시 01분, 31분
+  workflow_dispatch:
 
 jobs:
   collect:
