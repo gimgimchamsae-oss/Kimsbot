@@ -34,6 +34,7 @@ LEAGUES = {
     "2436":   ("Serie A",          "soccer"),
     "2036":   ("Ligue 1",          "soccer"),
     "2196":   ("La Liga",          "soccer"),
+    "1928":   ("Eredivisie",       "soccer"),   # Netherlands - Eredivisie
     "207551": ("K리그1",        "soccer"),
     "207552": ("K리그2",        "soccer"),
     "2663":   ("MLS",          "soccer"),
