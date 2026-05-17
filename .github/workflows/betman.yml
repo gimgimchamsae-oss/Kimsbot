@@ -1,0 +1,41 @@
+name: betman-collector
+
+# 베트맨 API가 서버 IP에서 차단됨 → GitHub Actions 우회
+# 매 5분 베트맨 호출 → SFTP로 서버에 raw JSON 업로드 → betman_cache.py 트리거
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: betman-collector
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-betman-paramiko
+          restore-keys: pip-
+
+      - name: Install paramiko
+        run: pip install paramiko
+
+      - name: Fetch + upload + trigger
+        env:
+          SSH_HOST: sharpsignal.cloud
+          SSH_USER: root
+          SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
+        run: |
+          python betman_fetch_and_push.py
