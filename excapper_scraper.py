@@ -190,7 +190,12 @@ def push_to_server(games: list[dict]) -> bool:
             tmp_path = tf.name
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(host, username=user, password=pw, timeout=15)
+        __import__(io); import io as _io3
+        if key_str:
+            _pk = __import__(paramiko).Ed25519Key.from_private_key(_io3.StringIO(key_str))
+            ssh.connect(hostname=host, port=22, username=user, pkey=_pk, timeout=20)
+        else:
+            ssh.connect(hostname=host, port=22, username=user, password=pw, timeout=20)
         sftp = ssh.open_sftp()
         sftp.put(tmp_path, remote)
         sftp.close()
