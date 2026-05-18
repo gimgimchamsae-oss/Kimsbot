@@ -1,10 +1,11 @@
 name: betman-collector
 
 # 베트맨 API가 서버 IP에서 차단됨 → GitHub Actions 우회
-# 매 5분 베트맨 호출 → SFTP로 서버에 raw JSON 업로드 → betman_cache.py 트리거
+# GitHub 무료 plan은 schedule cron이 best-effort라 5분은 자주 skip됨.
+# 10분 cron + 매 시각 정각 기준 (안정적).
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0,10,20,30,40,50 * * * *"
   workflow_dispatch:
 
 concurrency:
