@@ -39,7 +39,7 @@ jobs:
         env:
           EXCAPPER_SSH_HOST: 45.32.250.51
           EXCAPPER_SSH_USER: root
-          EXCAPPER_SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
+          EXCAPPER_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           EXCAPPER_REMOTE_PATH: /app/kimkimbot/excapper.json
           EUR_TO_KRW: "1500"
         run: python excapper_scraper.py
