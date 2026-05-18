@@ -34,7 +34,7 @@ HEADERS = {
 
 SSH_HOST = os.environ["SSH_HOST"]
 SSH_USER = os.environ["SSH_USER"]
-SSH_PASS = os.environ["SSH_PASS"]
+SSH_KEY = os.environ["SSH_KEY"]
 REMOTE_DIR = "/tmp"
 
 
