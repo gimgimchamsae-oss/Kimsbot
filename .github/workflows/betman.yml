@@ -35,7 +35,7 @@ jobs:
 
       - name: Fetch + upload + trigger
         env:
-          SSH_HOST: sharpsignal.cloud
+          SSH_HOST: pickchango.com
           SSH_USER: root
           SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
         run: |
