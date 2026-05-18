@@ -37,7 +37,7 @@ jobs:
 
       - name: Parse + Push to server (SFTP)
         env:
-          EXCAPPER_SSH_HOST: sharpsignal.cloud
+          EXCAPPER_SSH_HOST: pickchango.com
           EXCAPPER_SSH_USER: root
           EXCAPPER_SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
           EXCAPPER_REMOTE_PATH: /app/kimkimbot/excapper.json
