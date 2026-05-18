@@ -104,7 +104,8 @@ def main():
 
     # SFTP 업로드
     transport = paramiko.Transport((SSH_HOST, 22))
-    transport.connect(username=SSH_USER, password=SSH_PASS)
+    import io as _io; _pk = paramiko.Ed25519Key.from_private_key(_io.StringIO(SSH_KEY))
+    transport.connect(username=SSH_USER, pkey=_pk)
     sftp = paramiko.SFTPClient.from_transport(transport)
 
     game_path = f"{REMOTE_DIR}/betman_game_{gm_ts}.json"
@@ -120,7 +121,8 @@ def main():
     # ssh exec — betman_cache.py 실행 + betman_results.py 실행
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(SSH_HOST, username=SSH_USER, password=SSH_PASS, timeout=20)
+    import io as _io2; _pk2 = paramiko.Ed25519Key.from_private_key(_io2.StringIO(SSH_KEY))
+    client.connect(SSH_HOST, username=SSH_USER, pkey=_pk2, timeout=20)
     cmd = (
         f"cd /app/kimkimbot && "
         f"./venv/bin/python3 betman_cache.py --from-file {game_path} --gm-ts {gm_ts} && "
