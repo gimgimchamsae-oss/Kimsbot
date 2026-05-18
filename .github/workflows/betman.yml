@@ -37,6 +37,6 @@ jobs:
         env:
           SSH_HOST: 45.32.250.51
           SSH_USER: root
-          SSH_PASS: ${{ secrets.SHARPSIGNAL_SSH_PASS }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           python betman_fetch_and_push.py
