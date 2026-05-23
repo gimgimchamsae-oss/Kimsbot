@@ -1,9 +1,9 @@
-name: pinnacle-bot
+name: pinnacle-bot (DISABLED 2026-05-23 — 앱이 베트맨 단독으로 동작, snapshots 미사용)
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
+  # schedule: 비활성화 (2026-05-23부터)
+  #   - cron: "*/5 * * * *"
+  workflow_dispatch:  # 수동 실행만 가능
 
 jobs:
   monitor:
