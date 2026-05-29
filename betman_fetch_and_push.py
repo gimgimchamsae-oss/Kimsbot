@@ -136,6 +136,47 @@ def main():
         print(f"[remote stderr]\n{err}", file=sys.stderr)
     client.close()
     transport.close()
+    # ── 추가: 과거 5회차 결과도 fetch + 정산 ──
+    # 외국축구 등 회차 넘긴 후 결과 나오는 경기 대응
+    past_results = []
+    for offset in range(1, 6):
+        past_ts = gm_ts - offset
+        try:
+            r_json = fetch_result(past_ts)
+            if len(r_json) > 100:  # 빈 결과 ({}) 스킵
+                r_path = f"{REMOTE_DIR}/betman_result_{past_ts}.json"
+                past_results.append((past_ts, r_path, r_json))
+                print(f"[info] past gmTs={past_ts} winrst size={len(r_json)}")
+        except Exception as e:
+            print(f"[warn] past gmTs={past_ts} skip: {e}", file=sys.stderr)
+
+    if past_results:
+        # SFTP 재업로드 (transport 재사용)
+        transport2 = paramiko.Transport((SSH_HOST, 22))
+        import io as _io3; _pk3 = paramiko.Ed25519Key.from_private_key(_io3.StringIO(SSH_KEY))
+        transport2.connect(username=SSH_USER, pkey=_pk3)
+        sftp2 = paramiko.SFTPClient.from_transport(transport2)
+        for past_ts, r_path, r_json in past_results:
+            with sftp2.open(r_path, "w") as f:
+                f.write(r_json)
+        sftp2.close(); transport2.close()
+
+        # SSH로 각 회차 betman_results.py 실행
+        client2 = paramiko.SSHClient()
+        client2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        import io as _io4; _pk4 = paramiko.Ed25519Key.from_private_key(_io4.StringIO(SSH_KEY))
+        client2.connect(SSH_HOST, username=SSH_USER, pkey=_pk4, timeout=20)
+        for past_ts, r_path, _ in past_results:
+            cmd2 = f"cd /app/kimkimbot && ./venv/bin/python3 betman_results.py --from-file {r_path} --gm-ts {past_ts} || true"
+            _, out2, err2 = client2.exec_command(cmd2, timeout=60)
+            print(f"[past {past_ts}]
+{out2.read().decode('utf-8','replace')}")
+            e2 = err2.read().decode('utf-8','replace')
+            if e2.strip():
+                print(f"[past {past_ts} stderr]
+{e2}", file=sys.stderr)
+        client2.close()
+
     print(f"[done] total {time.time()-t0:.1f}s")
 
 
