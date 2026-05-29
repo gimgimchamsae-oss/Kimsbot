@@ -4,7 +4,7 @@ GitHub Actions에서 실행되는 베트맨 API 수집기.
 
 1) inqCacheBuyAbleGameInfoList.do  → 현재 G101 회차 gmTs 조회
 2) gameInfoInq.do                  → 경기/배당/구매율/배당변동 raw JSON
-3) inqWinrstDetlBody.do            → 최근 마감 경기 결과 raw JSON
+3) inqWinrstDetlBody.do            → 최근 마감 경기 결과 raw JSON (현재 + 과거 5회차)
 4) SFTP로 sharpsignal.cloud:/tmp/  업로드
 5) ssh exec: betman_cache.py --from-file ... 트리거 (DB 적재 + 픽 채점)
 """
@@ -82,100 +82,86 @@ def fetch_result(gm_ts):
             referer=referer,
         )
     except Exception as e:
-        print(f"[warn] result fetch failed: {e}", file=sys.stderr)
+        print(f"[warn] result fetch failed for gmTs={gm_ts}: {e}", file=sys.stderr)
         return "{}"
+
+
+def upload_files(files):
+    """files = [(remote_path, content_str), ...]"""
+    transport = paramiko.Transport((SSH_HOST, 22))
+    import io as _io
+    _pk = paramiko.Ed25519Key.from_private_key(_io.StringIO(SSH_KEY))
+    transport.connect(username=SSH_USER, pkey=_pk)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    for path, content in files:
+        with sftp.open(path, "w") as f:
+            f.write(content)
+    sftp.close()
+    transport.close()
+
+
+def ssh_exec(cmd, timeout=120):
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    import io as _io
+    _pk = paramiko.Ed25519Key.from_private_key(_io.StringIO(SSH_KEY))
+    client.connect(SSH_HOST, username=SSH_USER, pkey=_pk, timeout=20)
+    stdin, stdout, stderr = client.exec_command(cmd, timeout=timeout)
+    out = stdout.read().decode("utf-8", errors="replace")
+    err = stderr.read().decode("utf-8", errors="replace")
+    client.close()
+    return out, err
 
 
 def main():
     t0 = time.time()
     gm_ts = current_gm_ts()
     if not gm_ts:
-        # 회차 없음 (회차 사이 공백기) — 종료
         print("[info] no active G101 round; exit")
         return
     print(f"[info] gmTs={gm_ts}")
 
     game_json = fetch_game(gm_ts)
     print(f"[info] gameInfoInq size={len(game_json)}")
-
-    # 결과는 진행 중 회차에서도 일부 마감된 경기 있을 수 있음
     result_json = fetch_result(gm_ts)
     print(f"[info] winrst size={len(result_json)}")
-
-    # SFTP 업로드
-    transport = paramiko.Transport((SSH_HOST, 22))
-    import io as _io; _pk = paramiko.Ed25519Key.from_private_key(_io.StringIO(SSH_KEY))
-    transport.connect(username=SSH_USER, pkey=_pk)
-    sftp = paramiko.SFTPClient.from_transport(transport)
 
     game_path = f"{REMOTE_DIR}/betman_game_{gm_ts}.json"
     result_path = f"{REMOTE_DIR}/betman_result_{gm_ts}.json"
 
-    with sftp.open(game_path, "w") as f:
-        f.write(game_json)
-    with sftp.open(result_path, "w") as f:
-        f.write(result_json)
-    sftp.close()
-    print(f"[info] uploaded {game_path}, {result_path}")
+    # 과거 5회차 결과 fetch (외국축구 등 회차 넘긴 후 결과 나오는 경기 대응)
+    past_results = []
+    for offset in range(1, 6):
+        past_ts = gm_ts - offset
+        r_json = fetch_result(past_ts)
+        if len(r_json) > 100:  # 빈 결과 ({}) 스킵
+            past_results.append((past_ts, f"{REMOTE_DIR}/betman_result_{past_ts}.json", r_json))
+            print(f"[info] past gmTs={past_ts} winrst size={len(r_json)}")
 
-    # ssh exec — betman_cache.py 실행 + betman_results.py 실행
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    import io as _io2; _pk2 = paramiko.Ed25519Key.from_private_key(_io2.StringIO(SSH_KEY))
-    client.connect(SSH_HOST, username=SSH_USER, pkey=_pk2, timeout=20)
+    # 모든 파일 한 번에 SFTP 업로드
+    files = [(game_path, game_json), (result_path, result_json)]
+    files.extend([(p, c) for _, p, c in past_results])
+    upload_files(files)
+    print(f"[info] uploaded {len(files)} files")
+
+    # 현재 회차: 게임 + 결과 처리
     cmd = (
         f"cd /app/kimkimbot && "
         f"./venv/bin/python3 betman_cache.py --from-file {game_path} --gm-ts {gm_ts} && "
         f"./venv/bin/python3 betman_results.py --from-file {result_path} --gm-ts {gm_ts} || true"
     )
-    stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
-    out = stdout.read().decode("utf-8", errors="replace")
-    err = stderr.read().decode("utf-8", errors="replace")
-    print(f"[remote stdout]\n{out}")
+    out, err = ssh_exec(cmd)
+    print(f"[current] {out}")
     if err.strip():
-        print(f"[remote stderr]\n{err}", file=sys.stderr)
-    client.close()
-    transport.close()
-    # ── 추가: 과거 5회차 결과도 fetch + 정산 ──
-    # 외국축구 등 회차 넘긴 후 결과 나오는 경기 대응
-    past_results = []
-    for offset in range(1, 6):
-        past_ts = gm_ts - offset
-        try:
-            r_json = fetch_result(past_ts)
-            if len(r_json) > 100:  # 빈 결과 ({}) 스킵
-                r_path = f"{REMOTE_DIR}/betman_result_{past_ts}.json"
-                past_results.append((past_ts, r_path, r_json))
-                print(f"[info] past gmTs={past_ts} winrst size={len(r_json)}")
-        except Exception as e:
-            print(f"[warn] past gmTs={past_ts} skip: {e}", file=sys.stderr)
+        print(f"[current stderr] {err}", file=sys.stderr)
 
-    if past_results:
-        # SFTP 재업로드 (transport 재사용)
-        transport2 = paramiko.Transport((SSH_HOST, 22))
-        import io as _io3; _pk3 = paramiko.Ed25519Key.from_private_key(_io3.StringIO(SSH_KEY))
-        transport2.connect(username=SSH_USER, pkey=_pk3)
-        sftp2 = paramiko.SFTPClient.from_transport(transport2)
-        for past_ts, r_path, r_json in past_results:
-            with sftp2.open(r_path, "w") as f:
-                f.write(r_json)
-        sftp2.close(); transport2.close()
-
-        # SSH로 각 회차 betman_results.py 실행
-        client2 = paramiko.SSHClient()
-        client2.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        import io as _io4; _pk4 = paramiko.Ed25519Key.from_private_key(_io4.StringIO(SSH_KEY))
-        client2.connect(SSH_HOST, username=SSH_USER, pkey=_pk4, timeout=20)
-        for past_ts, r_path, _ in past_results:
-            cmd2 = f"cd /app/kimkimbot && ./venv/bin/python3 betman_results.py --from-file {r_path} --gm-ts {past_ts} || true"
-            _, out2, err2 = client2.exec_command(cmd2, timeout=60)
-            print(f"[past {past_ts}]
-{out2.read().decode('utf-8','replace')}")
-            e2 = err2.read().decode('utf-8','replace')
-            if e2.strip():
-                print(f"[past {past_ts} stderr]
-{e2}", file=sys.stderr)
-        client2.close()
+    # 과거 회차: 결과만 처리
+    for past_ts, r_path, _ in past_results:
+        cmd2 = f"cd /app/kimkimbot && ./venv/bin/python3 betman_results.py --from-file {r_path} --gm-ts {past_ts} || true"
+        out2, err2 = ssh_exec(cmd2)
+        print(f"[past {past_ts}] {out2}")
+        if err2.strip():
+            print(f"[past {past_ts} stderr] {err2}", file=sys.stderr)
 
     print(f"[done] total {time.time()-t0:.1f}s")
 
