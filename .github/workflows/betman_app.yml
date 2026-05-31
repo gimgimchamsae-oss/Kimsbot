@@ -1,0 +1,27 @@
+name: betman-app-push
+
+# 픽창고 bm_games(누적) → 앱서버(104) /api/games 로 푸시.
+# 기존 betman.yml(픽창고 적재)과 독립. 회차 닫혀도 DB 누적분을 계속 공급.
+on:
+  schedule:
+    - cron: "5,15,25,35,45,55 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: betman-app-push
+  cancel-in-progress: true
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install paramiko
+      - name: export on 45 + push to 104
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: python push_betman_app.py
