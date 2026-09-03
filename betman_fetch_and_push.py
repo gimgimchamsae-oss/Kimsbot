@@ -146,7 +146,7 @@ def main():
 
     # 현재 회차: 게임 + 결과 처리
     cmd = (
-        f"cd /app/kimkimbot && "
+        f"cd /app/betman && "
         f"./venv/bin/python3 betman_cache.py --from-file {game_path} --gm-ts {gm_ts} && "
         f"./venv/bin/python3 betman_results.py --from-file {result_path} --gm-ts {gm_ts} || true"
     )
@@ -157,7 +157,7 @@ def main():
 
     # 과거 회차: 결과만 처리
     for past_ts, r_path, _ in past_results:
-        cmd2 = f"cd /app/kimkimbot && ./venv/bin/python3 betman_results.py --from-file {r_path} --gm-ts {past_ts} || true"
+        cmd2 = f"cd /app/betman && ./venv/bin/python3 betman_results.py --from-file {r_path} --gm-ts {past_ts} || true"
         out2, err2 = ssh_exec(cmd2)
         print(f"[past {past_ts}] {out2}")
         if err2.strip():
