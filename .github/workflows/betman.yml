@@ -35,7 +35,7 @@ jobs:
 
       - name: Fetch + upload + trigger
         env:
-          SSH_HOST: 45.32.250.51
+          SSH_HOST: 64.176.233.51
           SSH_USER: root
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
